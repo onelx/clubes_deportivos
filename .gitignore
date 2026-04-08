@@ -24,8 +24,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
-.env*.local
 .env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Vercel
 .vercel
@@ -34,16 +38,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Supabase
-/supabase/.branches
-/supabase/.temp
-
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Logs
-logs
-*.log
+# Supabase
+/supabase/.branches
+/supabase/.temp
+
+# Stripe CLI
+.stripe/
