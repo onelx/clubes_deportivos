@@ -1,171 +1,236 @@
-# ClubStore Platform
+# ClubShop Platform
 
 Plataforma de tiendas online para clubes deportivos con fabricación bajo demanda.
 
 ## 🚀 Stack Tecnológico
 
-- **Frontend:** Next.js 14 (App Router) + TypeScript
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Database:** Supabase PostgreSQL
-- **Auth:** Supabase Auth
-- **Payments:** Stripe + Stripe Connect
-- **Deployment:** Vercel + Supabase Cloud
+- **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: Next.js API Routes + Supabase Edge Functions
+- **Base de Datos**: Supabase PostgreSQL con Row Level Security
+- **Autenticación**: Supabase Auth
+- **Pagos**: Stripe + Stripe Connect
+- **Hosting**: Vercel + Supabase Cloud
 
 ## 📋 Requisitos Previos
 
-- Node.js 18+ instalado
-- Cuenta de Supabase (gratuita)
-- Cuenta de Stripe (modo test)
-- Git
+- Node.js 18+ 
+- npm o yarn
+- Cuenta de Supabase (gratis en supabase.com)
+- Cuenta de Stripe (gratis en stripe.com)
 
 ## 🛠️ Setup Local
 
-### 1. Clonar el repositorio
+### 1. Clonar y instalar dependencias
 
 ```bash
-git clone <repository-url>
-cd clubstore-platform
-```
-
-### 2. Instalar dependencias
-
-```bash
+git clone <repo-url>
+cd clubshop-platform
 npm install
 ```
 
-### 3. Configurar Supabase
+### 2. Configurar Supabase
 
-1. Crear un proyecto en [Supabase](https://app.supabase.com)
-2. Ir a **Settings > API** y copiar:
-   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - service_role key → `SUPABASE_SERVICE_ROLE_KEY`
+1. Crear proyecto en [supabase.com](https://supabase.com)
+2. Ir a Settings > API y copiar:
+   - Project URL
+   - anon public key
+   - service_role key (⚠️ nunca exponer en frontend)
 
-3. Ejecutar las migraciones de base de datos:
-   - Ir a **SQL Editor** en Supabase
-   - Ejecutar el script `supabase/migrations/001_initial_schema.sql`
+3. Ejecutar el script SQL de migración (ver `/supabase/migrations/001_initial_schema.sql`):
 
-### 4. Configurar Stripe
+```sql
+-- Ir a SQL Editor en Supabase Dashboard y ejecutar el script completo
+```
 
-1. Crear cuenta en [Stripe](https://dashboard.stripe.com)
-2. Activar modo **Test**
-3. Ir a **Developers > API keys** y copiar:
-   - Publishable key → `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-   - Secret key → `STRIPE_SECRET_KEY`
+4. Configurar Storage:
+   - Ir a Storage
+   - Crear bucket público llamado `productos`
+   - Permitir subida de imágenes (jpg, png, webp)
 
-4. Configurar Stripe Connect:
-   - Ir a **Connect > Settings**
-   - Copiar Client ID → `STRIPE_CONNECT_CLIENT_ID`
+5. Configurar políticas de RLS (Row Level Security):
+   - Las políticas están incluidas en el script de migración
+   - Verificar que estén activas en Authentication > Policies
 
-5. Configurar Webhooks:
-   - Ir a **Developers > Webhooks**
-   - Añadir endpoint: `https://tu-dominio.com/api/webhooks/stripe`
+### 3. Configurar Stripe
+
+1. Crear cuenta en [stripe.com](https://stripe.com)
+2. Ir a Developers > API Keys y copiar:
+   - Publishable key
+   - Secret key
+
+3. Configurar Webhook para eventos de pago:
+   - Ir a Developers > Webhooks
+   - Agregar endpoint: `https://tu-dominio.com/api/webhooks/stripe`
    - Seleccionar eventos: `checkout.session.completed`, `payment_intent.succeeded`
-   - Copiar Signing secret → `STRIPE_WEBHOOK_SECRET`
+   - Copiar el Webhook Secret
 
-### 5. Variables de Entorno
+4. Habilitar Stripe Connect (para pagos a clubes):
+   - Ir a Connect > Settings
+   - Activar modo Express
 
-Copiar el archivo de ejemplo y completar con tus credenciales:
+### 4. Variables de Entorno
+
+Copiar `.env.example` a `.env.local` y completar:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Editar `.env.local` con tus valores reales.
+Editar `.env.local` con tus credenciales.
 
-### 6. Ejecutar en desarrollo
+### 5. Iniciar servidor de desarrollo
 
 ```bash
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000) en el navegador.
+Abrir [http://localhost:3000](http://localhost:3000)
 
-## 🗄️ Estructura de Base de Datos
+## 📁 Estructura del Proyecto
 
-El proyecto usa las siguientes tablas principales:
+```
+clubshop-platform/
+├── app/
+│   ├── (tienda)/
+│   │   └── [slug]/              # Tienda pública del club
+│   ├── (dashboard)/
+│   │   └── dashboard/           # Panel de administración del club
+│   ├── api/                     # API Routes
+│   ├── layout.tsx               # Layout raíz
+│   └── globals.css
+├── components/
+│   ├── ui/                      # Componentes shadcn/ui
+│   ├── tienda/                  # Componentes de tienda
+│   └── dashboard/               # Componentes de dashboard
+├── lib/
+│   ├── supabase.ts              # Cliente Supabase
+│   ├── utils.ts                 # Utilidades
+│   └── services/                # Lógica de negocio
+├── hooks/                       # Custom React Hooks
+├── types/                       # TypeScript types
+└── public/                      # Assets estáticos
+```
 
-- **clubs** - Información de clubes (nombre, logo, colores, comisión)
-- **usuarios_club** - Usuarios administradores de cada club
-- **productos** - Catálogo de productos por club
-- **variantes_producto** - Variantes (tallas/colores) de productos
-- **pedidos** - Pedidos realizados
-- **items_pedido** - Items individuales de cada pedido
+## 🗄️ Schema de Base de Datos
 
-Ver esquema completo en `supabase/migrations/001_initial_schema.sql`
+### Tablas Principales
 
-## 🔐 Row Level Security (RLS)
+- **clubs**: Información de clubes
+- **usuarios_club**: Relación usuarios-clubes
+- **productos**: Catálogo de productos
+- **variantes_producto**: Tallas/colores de productos
+- **pedidos**: Órdenes de compra
+- **items_pedido**: Líneas de pedido
+
+Ver el esquema completo en `/types/index.ts` y el SQL en `/supabase/migrations/`
+
+## 🔐 Seguridad
+
+### Row Level Security (RLS)
 
 Todas las tablas tienen RLS habilitado con políticas que:
 
-- Permiten lectura pública de clubs y productos activos
-- Restringen escritura a usuarios autenticados del club correspondiente
-- Protegen datos sensibles (IDs de Stripe, comisiones)
+- Permiten lectura pública de productos activos
+- Restringen escritura solo a usuarios autenticados del club
+- Aíslan datos entre clubes
+- Protegen información sensible de pedidos
 
-## 📱 Funcionalidades Principales
+### Variables de Entorno
 
-### Para Clubes (B2B)
+- **NUNCA** commitear `.env.local`
+- Usar `NEXT_PUBLIC_*` solo para valores que pueden ser públicos
+- Rotar keys regularmente
+- Usar diferentes keys para dev/staging/producción
 
-- Dashboard con métricas de ventas
-- Gestión de productos con variantes
-- Seguimiento de pedidos en tiempo real
-- Configuración de branding (logo, colores)
-- Reportes de comisiones y pagos
+## 🚀 Deploy a Producción
 
-### Para Socios (B2C)
+### Vercel (Recomendado)
 
-- Catálogo de productos del club
-- Carrito de compras persistente
-- Checkout con Stripe
-- Seguimiento de pedido con timeline visual
-- Múltiples métodos de pago
+1. Conectar repositorio en [vercel.com](https://vercel.com)
+2. Configurar variables de entorno
+3. Deploy automático en cada push a main
 
-## 🚢 Despliegue a Producción
+### Variables de Entorno en Vercel
 
-### Vercel
+Agregar todas las variables de `.env.example` en:
+- Settings > Environment Variables
+- Configurar para Production, Preview, Development
 
-1. Conectar repositorio a Vercel
-2. Configurar variables de entorno en Vercel dashboard
-3. Deploy automático en cada push a `main`
+### Actualizar Webhook de Stripe
 
-### Supabase
-
-1. El proyecto Supabase ya está en la nube
-2. Actualizar URLs en `.env` de desarrollo a producción
-3. Configurar dominio personalizado (opcional)
-
-### Stripe
-
-1. Cambiar de modo Test a Live
-2. Actualizar API keys en variables de entorno
-3. Configurar webhook con URL de producción
-
-## 🧪 Testing Webhooks Localmente
-
-Para probar webhooks de Stripe en local:
-
-```bash
-# Instalar Stripe CLI
-brew install stripe/stripe-cli/stripe
-
-# Login
-stripe login
-
-# Forward webhooks
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
+Cambiar la URL del webhook a tu dominio de producción:
+```
+https://tu-dominio.vercel.app/api/webhooks/stripe
 ```
 
-## 📚 Recursos Adicionales
+## 🧪 Testing
 
-- [Documentación de Next.js 14](https://nextjs.org/docs)
-- [Documentación de Supabase](https://supabase.com/docs)
-- [Documentación de Stripe Connect](https://stripe.com/docs/connect)
-- [shadcn/ui Components](https://ui.shadcn.com)
+```bash
+# Type checking
+npm run type-check
 
-## 🤝 Soporte
+# Linting
+npm run lint
+```
 
-Para issues o preguntas, crear un issue en GitHub o contactar a soporte@clubstore.com
+## 📝 Flujo de Trabajo
+
+### Cliente (Socio del Club)
+
+1. Visitar `tudominio.com/nombre-club`
+2. Navegar catálogo de productos
+3. Agregar al carrito
+4. Checkout con Stripe
+5. Recibir confirmación por email
+6. Trackear pedido
+
+### Administrador del Club
+
+1. Login en `/dashboard`
+2. Crear productos con variantes
+3. Ver pedidos en tiempo real
+4. Actualizar estados de pedidos
+5. Ver estadísticas de ventas
+6. Recibir pagos vía Stripe Connect
+
+## 🆘 Troubleshooting
+
+### Error: "Supabase client not initialized"
+- Verificar que `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` estén configuradas
+
+### Error: "Stripe error"
+- Verificar que las keys de Stripe sean correctas
+- En desarrollo, usar keys de test (`sk_test_...`)
+
+### Imágenes no cargan
+- Verificar que el bucket `productos` exista
+- Verificar que sea público
+- Verificar configuración de CORS en Supabase Storage
+
+### RLS bloquea queries
+- Verificar que las políticas de RLS estén correctas
+- Usar `service_role_key` en server-side cuando sea necesario
+- Nunca usar `service_role_key` en client-side
+
+## 📚 Documentación Adicional
+
+- [Next.js Docs](https://nextjs.org/docs)
+- [Supabase Docs](https://supabase.com/docs)
+- [Stripe Docs](https://stripe.com/docs)
+- [shadcn/ui Docs](https://ui.shadcn.com)
+
+## 🤝 Contribuir
+
+1. Fork del repositorio
+2. Crear branch feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push al branch (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
 
 ## 📄 Licencia
 
-Proprietary - Todos los derechos reservados
+MIT License - ver LICENSE file
+
+## 👥 Soporte
+
+Para soporte, email a soporte@tudominio.com o crear un issue en GitHub.
