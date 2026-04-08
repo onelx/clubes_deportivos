@@ -1,356 +1,274 @@
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-import { format, formatDistanceToNow, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
-import type { EstadoPedido, ESTADOS_PEDIDO } from '@/types'
-
-// ===========================================
-// UTILIDADES DE CLASES CSS
-// ===========================================
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-// ===========================================
-// FORMATEO DE PRECIOS Y NÚMEROS
-// ===========================================
-
-export function formatPrice(price: number, currency: string = 'EUR'): string {
-  return new Intl.NumberFormat('es-ES', {
+export function formatCurrency(amount: number, currency: string = 'ARS'): string {
+  return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency,
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(price)
+  }).format(amount);
 }
 
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat('es-ES').format(num)
+export function formatDate(date: string | Date, format: 'short' | 'long' = 'short'): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (format === 'long') {
+    return new Intl.DateTimeFormat('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(dateObj);
+  }
+  
+  return new Intl.DateTimeFormat('es-AR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(dateObj);
 }
-
-export function formatPercentage(value: number, decimals: number = 1): string {
-  return `${value.toFixed(decimals)}%`
-}
-
-// ===========================================
-// FORMATEO DE FECHAS
-// ===========================================
-
-export function formatDate(date: string | Date, formatStr: string = 'dd/MM/yyyy'): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date
-  return format(dateObj, formatStr, { locale: es })
-}
-
-export function formatDateTime(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date
-  return format(dateObj, "dd/MM/yyyy 'a las' HH:mm", { locale: es })
-}
-
-export function formatRelativeTime(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date
-  return formatDistanceToNow(dateObj, { addSuffix: true, locale: es })
-}
-
-// ===========================================
-// GENERADORES DE IDS Y SLUGS
-// ===========================================
 
 export function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-  return `ORD-${timestamp}-${random}`
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `ORD-${timestamp}-${random}`;
 }
 
-export function generateSKU(producto: string, talla: string, color: string): string {
-  const productoCode = producto.substring(0, 3).toUpperCase()
-  const tallaCode = talla.toUpperCase()
-  const colorCode = color.substring(0, 3).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
-  return `${productoCode}-${tallaCode}-${colorCode}-${random}`
+export function generateSKU(productName: string, variant?: { talla?: string | null; color?: string | null }): string {
+  const productCode = productName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .substring(0, 6);
+  
+  const timestamp = Date.now().toString(36).toUpperCase().substring(-4);
+  
+  let variantCode = '';
+  if (variant?.talla) {
+    variantCode += `-${variant.talla.toUpperCase()}`;
+  }
+  if (variant?.color) {
+    variantCode += `-${variant.color.substring(0, 3).toUpperCase()}`;
+  }
+  
+  return `${productCode}-${timestamp}${variantCode}`;
+}
+
+export function calculateCommission(amount: number, percentage: number): number {
+  return Math.round(amount * (percentage / 100));
+}
+
+export function calculateClubPayout(total: number, commission: number, shippingCost: number): number {
+  return total - commission - shippingCost;
 }
 
 export function slugify(text: string): string {
   return text
-    .toLowerCase()
+    .toString()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-    .replace(/[^a-z0-9]+/g, '-')     // Reemplazar caracteres especiales
-    .replace(/^-+|-+$/g, '')          // Quitar guiones al inicio/final
-    .substring(0, 50)                 // Limitar longitud
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 }
 
-// ===========================================
-// VALIDACIONES
-// ===========================================
-
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
 
-export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/
-  return phone.length >= 9 && phoneRegex.test(phone)
+export function validatePhone(phone: string): boolean {
+  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+  return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 8;
 }
 
-export function isValidPostalCode(code: string, country: string = 'ES'): boolean {
-  const patterns: Record<string, RegExp> = {
-    ES: /^[0-9]{5}$/,
-    PT: /^[0-9]{4}-[0-9]{3}$/,
-    FR: /^[0-9]{5}$/,
-    DE: /^[0-9]{5}$/,
-  }
-  return patterns[country]?.test(code) ?? code.length >= 4
+export function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + '...';
 }
 
-export function isValidSlug(slug: string): boolean {
-  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-  return slugRegex.test(slug) && slug.length >= 3 && slug.length <= 50
-}
-
-// ===========================================
-// UTILIDADES DE ARRAYS Y OBJETOS
-// ===========================================
-
-export function groupBy<T, K extends string | number>(
-  array: T[],
-  keyFn: (item: T) => K
-): Record<K, T[]> {
-  return array.reduce((result, item) => {
-    const key = keyFn(item)
-    if (!result[key]) {
-      result[key] = []
-    }
-    result[key].push(item)
-    return result
-  }, {} as Record<K, T[]>)
-}
-
-export function sortBy<T>(
-  array: T[],
-  keyFn: (item: T) => string | number,
-  direction: 'asc' | 'desc' = 'asc'
-): T[] {
-  return [...array].sort((a, b) => {
-    const aVal = keyFn(a)
-    const bVal = keyFn(b)
-    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-    return direction === 'asc' ? comparison : -comparison
-  })
-}
-
-export function uniqueBy<T>(array: T[], keyFn: (item: T) => string | number): T[] {
-  const seen = new Set<string | number>()
-  return array.filter((item) => {
-    const key = keyFn(item)
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-}
-
-// ===========================================
-// UTILIDADES DE STRINGS
-// ===========================================
-
-export function truncate(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str
-  return str.substring(0, maxLength - 3) + '...'
-}
-
-export function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-}
-
-export function titleCase(str: string): string {
-  return str
+export function getInitials(name: string): string {
+  return name
     .split(' ')
-    .map((word) => capitalize(word))
-    .join(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
 }
 
-// ===========================================
-// UTILIDADES DE COLORES
-// ===========================================
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+    
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+export function isValidHexColor(color: string): boolean {
+  return /^#[0-9A-F]{6}$/i.test(color);
+}
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16),
       }
-    : null
+    : null;
 }
 
-export function isLightColor(hex: string): boolean {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return true
-  // Fórmula de luminosidad percibida
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255
-  return luminance > 0.5
+export function getContrastColor(hexColor: string): 'light' | 'dark' {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return 'dark';
+  
+  const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return brightness > 128 ? 'dark' : 'light';
 }
 
-export function getContrastColor(hex: string): string {
-  return isLightColor(hex) ? '#000000' : '#FFFFFF'
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ===========================================
-// UTILIDADES DE ESTADOS DE PEDIDO
-// ===========================================
-
-export function getEstadoPedidoConfig(estado: EstadoPedido) {
-  const estados: Record<EstadoPedido, { label: string; color: string; bgColor: string }> = {
-    pendiente: { label: 'Pendiente', color: 'text-yellow-800', bgColor: 'bg-yellow-100' },
-    pagado: { label: 'Pagado', color: 'text-green-800', bgColor: 'bg-green-100' },
-    en_produccion: { label: 'En Producción', color: 'text-blue-800', bgColor: 'bg-blue-100' },
-    enviado: { label: 'Enviado', color: 'text-purple-800', bgColor: 'bg-purple-100' },
-    entregado: { label: 'Entregado', color: 'text-gray-800', bgColor: 'bg-gray-100' },
-    cancelado: { label: 'Cancelado', color: 'text-red-800', bgColor: 'bg-red-100' },
-  }
-  return estados[estado]
-}
-
-export function canTransitionTo(currentState: EstadoPedido, newState: EstadoPedido): boolean {
-  const transitions: Record<EstadoPedido, EstadoPedido[]> = {
-    pendiente: ['pagado', 'cancelado'],
-    pagado: ['en_produccion', 'cancelado'],
-    en_produccion: ['enviado', 'cancelado'],
-    enviado: ['entregado'],
-    entregado: [],
-    cancelado: [],
-  }
-  return transitions[currentState].includes(newState)
-}
-
-// ===========================================
-// UTILIDADES DE CÁLCULOS
-// ===========================================
-
-export function calcularSubtotal(items: { cantidad: number; precio_unitario: number }[]): number {
-  return items.reduce((sum, item) => sum + item.cantidad * item.precio_unitario, 0)
-}
-
-export function calcularComision(total: number, porcentaje: number): number {
-  return Math.round((total * porcentaje) / 100 * 100) / 100
-}
-
-export function calcularPagoClub(total: number, comision: number): number {
-  return Math.round((total - comision) * 100) / 100
-}
-
-// ===========================================
-// DEBOUNCE Y THROTTLE
-// ===========================================
-
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => fn(...args), delay)
-  }
-}
-
-export function throttle<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle = false
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      fn(...args)
-      inThrottle = true
-      setTimeout(() => (inThrottle = false), limit)
+export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
+  return array.reduce((result, item) => {
+    const groupKey = String(item[key]);
+    if (!result[groupKey]) {
+      result[groupKey] = [];
     }
-  }
+    result[groupKey].push(item);
+    return result;
+  }, {} as Record<string, T[]>);
 }
 
-// ===========================================
-// UTILIDADES DE URL
-// ===========================================
-
-export function buildUrl(base: string, params: Record<string, string | number | undefined>): string {
-  const url = new URL(base)
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== '') {
-      url.searchParams.set(key, String(value))
-    }
-  })
-  return url.toString()
+export function unique<T>(array: T[]): T[] {
+  return Array.from(new Set(array));
 }
 
-export function getBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+export function sumBy<T>(array: T[], key: keyof T): number {
+  return array.reduce((sum, item) => sum + (Number(item[key]) || 0), 0);
 }
 
-// ===========================================
-// ASYNC HELPERS
-// ===========================================
-
-export async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
+  return [...array].sort((a, b) => {
+    const aVal = a[key];
+    const bVal = b[key];
+    
+    if (aVal === bVal) return 0;
+    
+    const comparison = aVal < bVal ? -1 : 1;
+    return order === 'asc' ? comparison : -comparison;
+  });
 }
 
-export async function retry<T>(
-  fn: () => Promise<T>,
-  maxAttempts: number = 3,
-  delay: number = 1000
-): Promise<T> {
-  let lastError: Error | undefined
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn()
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      if (attempt < maxAttempts) {
-        await sleep(delay * attempt)
-      }
-    }
-  }
-  
-  throw lastError
-}
-
-// ===========================================
-// STORAGE HELPERS
-// ===========================================
-
-export function getFromStorage<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') return defaultValue
-  
+export function parseJSON<T>(json: string, fallback: T): T {
   try {
-    const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : defaultValue
+    return JSON.parse(json) as T;
   } catch {
-    return defaultValue
+    return fallback;
   }
 }
 
-export function setToStorage<T>(key: string, value: T): void {
-  if (typeof window === 'undefined') return
-  
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    console.error('Error saving to localStorage')
-  }
+export function isBrowser(): boolean {
+  return typeof window !== 'undefined';
 }
 
-export function removeFromStorage(key: string): void {
-  if (typeof window === 'undefined') return
-  
-  try {
-    localStorage.removeItem(key)
-  } catch {
-    console.error('Error removing from localStorage')
+export function getBaseURL(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
   }
+  
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  return 'http://localhost:3000';
 }
+
+export function buildURL(path: string, params?: Record<string, string | number | boolean>): string {
+  const baseURL = getBaseURL();
+  const url = new URL(path, baseURL);
+  
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.set(key, String(value));
+    });
+  }
+  
+  return url.toString();
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  
+  return 'Ha ocurrido un error inesperado';
+}
+
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+export function pluralize(count: number, singular: string, plural?: string): string {
+  if (count === 1) return singular;
+  return plural || `${singular}s`;
+}
+
+export const CATEGORIAS_PRODUCTO = [
+  { value: 'camisetas', label: 'Camisetas' },
+  { value: 'buzos', label: 'Buzos' },
+  { value: 'gorras', label: 'Gorras' },
+  { value: 'accesorios', label: 'Accesorios' },
+  { value: 'otros', label: 'Otros' },
+] as const;
+
+export const ESTADOS_PEDIDO = [
+  { value: 'pendiente_pago', label: 'Pendiente de Pago', color: 'yellow' },
+  { value: 'pagado', label: 'Pagado', color: 'green' },
+  { value: 'en_produccion', label: 'En Producción', color: 'blue' },
+  { value: 'enviado', label: 'Enviado', color: 'purple' },
+  { value: 'entregado', label: 'Entregado', color: 'emerald' },
+  { value: 'cancelado', label: 'Cancelado', color: 'red' },
+] as const;
+
+export const TALLAS_DISPONIBLES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+
+export const COLORES_DISPONIBLES = [
+  { value: 'blanco', label: 'Blanco', hex: '#FFFFFF' },
+  { value: 'negro', label: 'Negro', hex: '#000000' },
+  { value: 'azul', label: 'Azul', hex: '#0000FF' },
+  { value: 'rojo', label: 'Rojo', hex: '#FF0000' },
+  { value: 'verde', label: 'Verde', hex: '#00FF00' },
+  { value: 'amarillo', label: 'Amarillo', hex: '#FFFF00' },
+  { value: 'gris', label: 'Gris', hex: '#808080' },
+] as const;
