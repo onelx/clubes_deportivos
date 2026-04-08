@@ -2,26 +2,170 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --club-primary: #3b82f6;
-  --club-secondary: #1e40af;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+    
+    /* Club dynamic colors - overridden per club */
+    --club-primary: #000000;
+    --club-secondary: #ffffff;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
 }
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
-/* Estilos base para inputs */
-input, select, textarea {
-  @apply border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-club-primary focus:border-transparent;
+@layer components {
+  .club-gradient {
+    background: linear-gradient(135deg, var(--club-primary) 0%, var(--club-secondary) 100%);
+  }
+  
+  .club-bg-primary {
+    background-color: var(--club-primary);
+  }
+  
+  .club-bg-secondary {
+    background-color: var(--club-secondary);
+  }
+  
+  .club-text-primary {
+    color: var(--club-primary);
+  }
+  
+  .club-text-secondary {
+    color: var(--club-secondary);
+  }
+  
+  .club-border-primary {
+    border-color: var(--club-primary);
+  }
+  
+  .product-card {
+    @apply rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .btn-club {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+    background-color: var(--club-primary);
+    color: var(--club-secondary);
+  }
+  
+  .btn-club:hover {
+    opacity: 0.9;
+  }
+  
+  .input-club:focus {
+    border-color: var(--club-primary);
+    box-shadow: 0 0 0 2px rgba(var(--club-primary), 0.2);
+  }
 }
 
-/* Botón primario */
-.btn-primary {
-  @apply bg-club-primary text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .animate-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  
+  .animate-out {
+    animation: fade-out 0.2s ease-out;
+  }
 }
 
-/* Botón secundario */
-.btn-secondary {
-  @apply bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors;
+/* Custom scrollbar for cart drawer */
+.cart-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cart-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.cart-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.cart-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
