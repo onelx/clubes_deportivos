@@ -1,393 +1,371 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
-export interface Database {
-  public: {
-    Tables: {
-      clubs: {
-        Row: Club;
-        Insert: ClubInsert;
-        Update: ClubUpdate;
-      };
-      usuarios_club: {
-        Row: UsuarioClub;
-        Insert: UsuarioClubInsert;
-        Update: UsuarioClubUpdate;
-      };
-      productos: {
-        Row: Producto;
-        Insert: ProductoInsert;
-        Update: ProductoUpdate;
-      };
-      variantes_producto: {
-        Row: VarianteProducto;
-        Insert: VarianteProductoInsert;
-        Update: VarianteProductoUpdate;
-      };
-      pedidos: {
-        Row: Pedido;
-        Insert: PedidoInsert;
-        Update: PedidoUpdate;
-      };
-      items_pedido: {
-        Row: ItemPedido;
-        Insert: ItemPedidoInsert;
-        Update: ItemPedidoUpdate;
-      };
-    };
-  };
-}
-
 export interface Club {
-  id: string;
-  slug: string;
-  nombre: string;
-  logo_url: string | null;
-  color_primario: string;
-  color_secundario: string;
-  stripe_account_id: string | null;
-  comision_porcentaje: number;
-  activo: boolean;
-  created_at: string;
+  id: string
+  slug: string
+  nombre: string
+  logo_url: string | null
+  color_primario: string
+  color_secundario: string
+  stripe_account_id: string | null
+  comision_porcentaje: number
+  activo: boolean
+  created_at: string
+  descripcion?: string
+  email?: string
+  telefono?: string
+  direccion?: string
+  redes_sociales?: {
+    facebook?: string
+    instagram?: string
+    twitter?: string
+    tiktok?: string
+  }
 }
-
-export interface ClubInsert {
-  id?: string;
-  slug: string;
-  nombre: string;
-  logo_url?: string | null;
-  color_primario?: string;
-  color_secundario?: string;
-  stripe_account_id?: string | null;
-  comision_porcentaje?: number;
-  activo?: boolean;
-  created_at?: string;
-}
-
-export interface ClubUpdate {
-  slug?: string;
-  nombre?: string;
-  logo_url?: string | null;
-  color_primario?: string;
-  color_secundario?: string;
-  stripe_account_id?: string | null;
-  comision_porcentaje?: number;
-  activo?: boolean;
-}
-
-export interface ClubPublic {
-  id: string;
-  slug: string;
-  nombre: string;
-  logo_url: string | null;
-  color_primario: string;
-  color_secundario: string;
-  activo: boolean;
-}
-
-export type RolUsuarioClub = 'admin' | 'editor' | 'viewer';
 
 export interface UsuarioClub {
-  id: string;
-  club_id: string;
-  auth_user_id: string;
-  rol: RolUsuarioClub;
-  created_at: string;
-}
-
-export interface UsuarioClubInsert {
-  id?: string;
-  club_id: string;
-  auth_user_id: string;
-  rol: RolUsuarioClub;
-  created_at?: string;
-}
-
-export interface UsuarioClubUpdate {
-  club_id?: string;
-  auth_user_id?: string;
-  rol?: RolUsuarioClub;
-}
-
-export type CategoriaProducto = 'camisetas' | 'buzos' | 'gorras' | 'accesorios' | 'otros';
-
-export interface ProductoImagen {
-  url: string;
-  alt: string;
-  orden: number;
+  id: string
+  club_id: string
+  auth_user_id: string
+  rol: 'admin' | 'editor' | 'viewer'
+  created_at: string
+  club?: Club
 }
 
 export interface Producto {
-  id: string;
-  club_id: string;
-  nombre: string;
-  descripcion: string;
-  precio_base: number;
-  costo_produccion: number;
-  categoria: CategoriaProducto;
-  imagenes: ProductoImagen[];
-  activo: boolean;
-  created_at: string;
-}
-
-export interface ProductoInsert {
-  id?: string;
-  club_id: string;
-  nombre: string;
-  descripcion: string;
-  precio_base: number;
-  costo_produccion: number;
-  categoria: CategoriaProducto;
-  imagenes?: ProductoImagen[];
-  activo?: boolean;
-  created_at?: string;
-}
-
-export interface ProductoUpdate {
-  club_id?: string;
-  nombre?: string;
-  descripcion?: string;
-  precio_base?: number;
-  costo_produccion?: number;
-  categoria?: CategoriaProducto;
-  imagenes?: ProductoImagen[];
-  activo?: boolean;
-}
-
-export interface ProductoConVariantes extends Producto {
-  variantes: VarianteProducto[];
-  club?: ClubPublic;
+  id: string
+  club_id: string
+  nombre: string
+  descripcion: string
+  precio_base: number
+  costo_produccion: number
+  categoria: string
+  imagenes: string[]
+  activo: boolean
+  created_at: string
+  destacado?: boolean
+  stock_ilimitado?: boolean
+  etiquetas?: string[]
+  club?: Club
+  variantes?: VarianteProducto[]
 }
 
 export interface VarianteProducto {
-  id: string;
-  producto_id: string;
-  talla: string | null;
-  color: string | null;
-  sku: string;
-  activo: boolean;
+  id: string
+  producto_id: string
+  talla: string | null
+  color: string | null
+  sku: string
+  activo: boolean
+  precio_ajuste?: number
+  stock?: number
+  imagen_url?: string
+  producto?: Producto
 }
 
-export interface VarianteProductoInsert {
-  id?: string;
-  producto_id: string;
-  talla?: string | null;
-  color?: string | null;
-  sku: string;
-  activo?: boolean;
-}
-
-export interface VarianteProductoUpdate {
-  producto_id?: string;
-  talla?: string | null;
-  color?: string | null;
-  sku?: string;
-  activo?: boolean;
+export interface Pedido {
+  id: string
+  club_id: string
+  numero_pedido: string
+  estado: EstadoPedido
+  cliente_email: string
+  cliente_nombre: string
+  cliente_telefono?: string
+  direccion_envio: DireccionEnvio
+  subtotal: number
+  costo_envio: number
+  total: number
+  comision_plataforma: number
+  pago_club: number
+  stripe_payment_intent_id: string | null
+  stripe_checkout_session_id?: string
+  tracking_number: string | null
+  notas?: string
+  created_at: string
+  paid_at: string | null
+  shipped_at: string | null
+  delivered_at?: string | null
+  cancelled_at?: string | null
+  club?: Club
+  items?: ItemPedido[]
 }
 
 export type EstadoPedido = 
-  | 'pendiente_pago'
+  | 'pendiente'
   | 'pagado'
   | 'en_produccion'
   | 'enviado'
   | 'entregado'
-  | 'cancelado';
+  | 'cancelado'
+  | 'reembolsado'
 
 export interface DireccionEnvio {
-  nombre_completo: string;
-  calle: string;
-  ciudad: string;
-  provincia: string;
-  codigo_postal: string;
-  pais: string;
-  telefono: string;
-  instrucciones?: string;
-}
-
-export interface Pedido {
-  id: string;
-  club_id: string;
-  numero_pedido: string;
-  estado: EstadoPedido;
-  cliente_email: string;
-  cliente_nombre: string;
-  direccion_envio: DireccionEnvio;
-  subtotal: number;
-  costo_envio: number;
-  total: number;
-  comision_plataforma: number;
-  pago_club: number;
-  stripe_payment_intent_id: string | null;
-  tracking_number: string | null;
-  created_at: string;
-  paid_at: string | null;
-  shipped_at: string | null;
-}
-
-export interface PedidoInsert {
-  id?: string;
-  club_id: string;
-  numero_pedido: string;
-  estado?: EstadoPedido;
-  cliente_email: string;
-  cliente_nombre: string;
-  direccion_envio: DireccionEnvio;
-  subtotal: number;
-  costo_envio: number;
-  total: number;
-  comision_plataforma: number;
-  pago_club: number;
-  stripe_payment_intent_id?: string | null;
-  tracking_number?: string | null;
-  created_at?: string;
-  paid_at?: string | null;
-  shipped_at?: string | null;
-}
-
-export interface PedidoUpdate {
-  estado?: EstadoPedido;
-  tracking_number?: string | null;
-  paid_at?: string | null;
-  shipped_at?: string | null;
-}
-
-export interface PedidoConDetalles extends Pedido {
-  items: ItemPedidoConDetalles[];
-  club?: ClubPublic;
+  nombre_completo: string
+  direccion: string
+  ciudad: string
+  provincia: string
+  codigo_postal: string
+  pais: string
+  telefono?: string
+  referencias?: string
 }
 
 export interface ItemPedido {
-  id: string;
-  pedido_id: string;
-  producto_id: string;
-  variante_id: string | null;
-  cantidad: number;
-  precio_unitario: number;
-  subtotal: number;
+  id: string
+  pedido_id: string
+  producto_id: string
+  variante_id: string | null
+  cantidad: number
+  precio_unitario: number
+  subtotal: number
+  personalizacion?: PersonalizacionItem
+  producto?: Producto
+  variante?: VarianteProducto
 }
 
-export interface ItemPedidoInsert {
-  id?: string;
-  pedido_id: string;
-  producto_id: string;
-  variante_id?: string | null;
-  cantidad: number;
-  precio_unitario: number;
-  subtotal: number;
-}
-
-export interface ItemPedidoUpdate {
-  cantidad?: number;
-  precio_unitario?: number;
-  subtotal?: number;
-}
-
-export interface ItemPedidoConDetalles extends ItemPedido {
-  producto?: Producto;
-  variante?: VarianteProducto;
+export interface PersonalizacionItem {
+  nombre?: string
+  numero?: string
+  texto_adicional?: string
 }
 
 export interface CarritoItem {
-  producto_id: string;
-  variante_id: string | null;
-  cantidad: number;
-  producto?: ProductoConVariantes;
-  variante?: VarianteProducto;
+  producto_id: string
+  variante_id: string | null
+  cantidad: number
+  producto: Producto
+  variante?: VarianteProducto
+  personalizacion?: PersonalizacionItem
 }
 
 export interface Carrito {
-  items: CarritoItem[];
-  subtotal: number;
-  cantidad_total: number;
-}
-
-export interface CheckoutSession {
-  club_slug: string;
-  items: CarritoItem[];
-  cliente_email: string;
-  cliente_nombre: string;
-  direccion_envio: DireccionEnvio;
+  items: CarritoItem[]
+  subtotal: number
+  total: number
+  club_id: string
 }
 
 export interface EstadisticasClub {
-  total_ventas: number;
-  total_pedidos: number;
-  comisiones_pagadas: number;
-  ingresos_netos: number;
-  productos_activos: number;
-  pedidos_pendientes: number;
-  productos_top: {
-    producto_id: string;
-    nombre: string;
-    total_vendido: number;
-    cantidad_vendida: number;
-  }[];
-  ventas_por_mes: {
-    mes: string;
-    total: number;
-    cantidad: number;
-  }[];
+  ventas_totales: number
+  pedidos_totales: number
+  pedidos_pendientes: number
+  pedidos_en_produccion: number
+  comisiones_totales: number
+  productos_activos: number
+  productos_top: ProductoTop[]
+  ventas_por_mes: VentasMes[]
+  ingresos_netos: number
+}
+
+export interface ProductoTop {
+  producto_id: string
+  nombre: string
+  imagen_url: string
+  cantidad_vendida: number
+  ingresos_totales: number
+}
+
+export interface VentasMes {
+  mes: string
+  ventas: number
+  pedidos: number
+  comisiones: number
 }
 
 export interface StripeCheckoutSession {
-  id: string;
-  url: string;
-  payment_intent?: string;
-}
-
-export interface StripeConnectAccount {
-  id: string;
-  charges_enabled: boolean;
-  payouts_enabled: boolean;
-  details_submitted: boolean;
+  sessionId: string
+  url: string
 }
 
 export interface WebhookStripeEvent {
-  id: string;
-  type: string;
+  type: string
   data: {
-    object: any;
-  };
+    object: {
+      id: string
+      payment_intent?: string
+      metadata?: Record<string, string>
+      customer_details?: {
+        email: string
+        name: string
+      }
+    }
+  }
 }
 
-export interface ApiError {
-  error: string;
-  message: string;
-  status: number;
+export interface Usuario {
+  id: string
+  email: string
+  nombre?: string
+  avatar_url?: string
+  created_at: string
 }
 
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  message?: string;
+export interface Session {
+  user: Usuario
+  access_token: string
+  refresh_token: string
+  expires_at: number
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
+export interface ApiResponse<T = any> {
+  data?: T
+  error?: string
+  message?: string
+  status?: number
+}
+
+export interface PaginatedResponse<T = any> {
+  data: T[]
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
 }
 
 export interface FiltrosPedidos {
-  estado?: EstadoPedido;
-  fecha_desde?: string;
-  fecha_hasta?: string;
-  busqueda?: string;
-  page?: number;
-  per_page?: number;
+  estado?: EstadoPedido[]
+  fecha_desde?: string
+  fecha_hasta?: string
+  busqueda?: string
+  page?: number
+  per_page?: number
 }
 
 export interface FiltrosProductos {
-  categoria?: CategoriaProducto;
-  activo?: boolean;
-  busqueda?: string;
-  page?: number;
-  per_page?: number;
+  categoria?: string[]
+  busqueda?: string
+  activo?: boolean
+  destacado?: boolean
+  precio_min?: number
+  precio_max?: number
+  page?: number
+  per_page?: number
+}
+
+export interface ConfiguracionClub {
+  club_id: string
+  notificaciones_email: boolean
+  notificaciones_pedidos: boolean
+  mensaje_bienvenida?: string
+  politicas_envio?: string
+  politicas_devolucion?: string
+  tiempo_produccion_dias: number
+  metodos_envio: MetodoEnvio[]
+}
+
+export interface MetodoEnvio {
+  id: string
+  nombre: string
+  descripcion: string
+  precio: number
+  tiempo_estimado_dias: number
+  activo: boolean
+}
+
+export interface NotificacionPedido {
+  tipo: 'nuevo_pedido' | 'estado_actualizado' | 'pago_recibido'
+  pedido_id: string
+  destinatario: string
+  asunto: string
+  contenido: string
+}
+
+export type CategoriaProducto = 
+  | 'camisetas'
+  | 'pantalones'
+  | 'buzos'
+  | 'gorras'
+  | 'accesorios'
+  | 'otros'
+
+export const CATEGORIAS_PRODUCTOS: Record<CategoriaProducto, string> = {
+  camisetas: 'Camisetas',
+  pantalones: 'Pantalones',
+  buzos: 'Buzos y Camperas',
+  gorras: 'Gorras',
+  accesorios: 'Accesorios',
+  otros: 'Otros',
+}
+
+export const TALLAS_DISPONIBLES = [
+  'XS',
+  'S',
+  'M',
+  'L',
+  'XL',
+  'XXL',
+  'XXXL',
+] as const
+
+export type Talla = typeof TALLAS_DISPONIBLES[number]
+
+export const COLORES_DISPONIBLES = [
+  { nombre: 'Blanco', hex: '#FFFFFF' },
+  { nombre: 'Negro', hex: '#000000' },
+  { nombre: 'Gris', hex: '#9CA3AF' },
+  { nombre: 'Azul', hex: '#3B82F6' },
+  { nombre: 'Rojo', hex: '#EF4444' },
+  { nombre: 'Verde', hex: '#10B981' },
+  { nombre: 'Amarillo', hex: '#F59E0B' },
+  { nombre: 'Naranja', hex: '#F97316' },
+  { nombre: 'Rosa', hex: '#EC4899' },
+  { nombre: 'Morado', hex: '#8B5CF6' },
+] as const
+
+export const ESTADOS_PEDIDO_LABELS: Record<EstadoPedido, string> = {
+  pendiente: 'Pendiente de Pago',
+  pagado: 'Pagado',
+  en_produccion: 'En Producción',
+  enviado: 'Enviado',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
+  reembolsado: 'Reembolsado',
+}
+
+export const ESTADOS_PEDIDO_COLORS: Record<EstadoPedido, string> = {
+  pendiente: 'bg-yellow-100 text-yellow-800',
+  pagado: 'bg-blue-100 text-blue-800',
+  en_produccion: 'bg-purple-100 text-purple-800',
+  enviado: 'bg-indigo-100 text-indigo-800',
+  entregado: 'bg-green-100 text-green-800',
+  cancelado: 'bg-red-100 text-red-800',
+  reembolsado: 'bg-gray-100 text-gray-800',
+}
+
+export interface ErrorValidacion {
+  field: string
+  message: string
+}
+
+export interface FormularioProducto {
+  nombre: string
+  descripcion: string
+  categoria: CategoriaProducto
+  precio_base: number
+  costo_produccion: number
+  imagenes: File[]
+  activo: boolean
+  destacado: boolean
+  variantes: FormularioVariante[]
+  etiquetas: string[]
+}
+
+export interface FormularioVariante {
+  talla: string | null
+  color: string | null
+  sku: string
+  precio_ajuste: number
+  stock: number | null
+  activo: boolean
+}
+
+export interface FormularioCheckout {
+  email: string
+  nombre_completo: string
+  telefono: string
+  direccion: string
+  ciudad: string
+  provincia: string
+  codigo_postal: string
+  pais: string
+  referencias?: string
+  acepta_terminos: boolean
 }
