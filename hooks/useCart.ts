@@ -1,29 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import { CartItem, Producto, VarianteProducto } from '@/types';
+"use client";
 
-interface CartState {
-  items: CartItem[];
+import { useState, useEffect, useCallback } from 'react';
+import type { Producto, VarianteProducto, ItemCarrito } from '@/types';
+
+interface UseCartReturn {
+  items: ItemCarrito[];
+  addItem: (producto: Producto, variante: VarianteProducto, cantidad: number) => void;
+  removeItem: (itemId: string) => void;
+  updateQuantity: (itemId: string, cantidad: number) => void;
+  clearCart: () => void;
   total: number;
   itemCount: number;
+  isLoading: boolean;
 }
 
-const CART_STORAGE_KEY = 'club_store_cart';
+const CART_STORAGE_KEY = 'ideaforge_cart';
 
-export function useCart() {
-  const [cart, setCart] = useState<CartState>({
-    items: [],
-    total: 0,
-    itemCount: 0,
-  });
+export function useCart(): UseCartReturn {
+  const [items, setItems] = useState<ItemCarrito[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Cargar carrito desde localStorage al montar
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedCart) {
-        const parsed = JSON.parse(savedCart) as CartState;
-        setCart(parsed);
+      const stored = localStorage.getItem(CART_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setItems(parsed);
       }
     } catch (error) {
       console.error('Error loading cart from localStorage:', error);
@@ -32,24 +35,24 @@ export function useCart() {
     }
   }, []);
 
-  // Guardar carrito en localStorage cuando cambie
+  // Sincronizar con localStorage cuando cambian los items
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
       } catch (error) {
         console.error('Error saving cart to localStorage:', error);
       }
     }
-  }, [cart, isLoading]);
+  }, [items, isLoading]);
 
-  // Sincronizar carrito entre pestañas
+  // Sincronizar entre pestañas
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === CART_STORAGE_KEY && e.newValue) {
         try {
-          const newCart = JSON.parse(e.newValue) as CartState;
-          setCart(newCart);
+          const newItems = JSON.parse(e.newValue);
+          setItems(newItems);
         } catch (error) {
           console.error('Error syncing cart across tabs:', error);
         }
@@ -60,133 +63,71 @@ export function useCart() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const calculateTotal = useCallback((items: CartItem[]): number => {
-    return items.reduce((sum, item) => sum + item.precio_unitario * item.cantidad, 0);
-  }, []);
+  const addItem = useCallback((producto: Producto, variante: VarianteProducto, cantidad: number) => {
+    setItems(currentItems => {
+      const itemId = `${producto.id}-${variante.id}`;
+      const existingItemIndex = currentItems.findIndex(
+        item => item.producto.id === producto.id && item.variante.id === variante.id
+      );
 
-  const calculateItemCount = useCallback((items: CartItem[]): number => {
-    return items.reduce((sum, item) => sum + item.cantidad, 0);
-  }, []);
-
-  const addItem = useCallback(
-    (producto: Producto, variante: VarianteProducto, cantidad: number = 1) => {
-      setCart((prevCart) => {
-        const existingItemIndex = prevCart.items.findIndex(
-          (item) =>
-            item.producto_id === producto.id && item.variante_id === variante.id
-        );
-
-        let newItems: CartItem[];
-
-        if (existingItemIndex > -1) {
-          // Actualizar cantidad del item existente
-          newItems = [...prevCart.items];
-          newItems[existingItemIndex] = {
-            ...newItems[existingItemIndex],
-            cantidad: newItems[existingItemIndex].cantidad + cantidad,
-          };
-        } else {
-          // Agregar nuevo item
-          const newItem: CartItem = {
-            id: `${producto.id}-${variante.id}`,
-            producto_id: producto.id,
-            variante_id: variante.id,
-            producto_nombre: producto.nombre,
-            producto_imagen: Array.isArray(producto.imagenes) && producto.imagenes.length > 0
-              ? producto.imagenes[0]
-              : '',
-            variante_talla: variante.talla,
-            variante_color: variante.color,
-            variante_sku: variante.sku,
-            cantidad,
-            precio_unitario: producto.precio_base,
-          };
-          newItems = [...prevCart.items, newItem];
-        }
-
-        return {
-          items: newItems,
-          total: calculateTotal(newItems),
-          itemCount: calculateItemCount(newItems),
+      if (existingItemIndex > -1) {
+        // Item ya existe, actualizar cantidad
+        const newItems = [...currentItems];
+        newItems[existingItemIndex] = {
+          ...newItems[existingItemIndex],
+          cantidad: newItems[existingItemIndex].cantidad + cantidad,
         };
-      });
-    },
-    [calculateTotal, calculateItemCount]
-  );
-
-  const updateQuantity = useCallback(
-    (itemId: string, cantidad: number) => {
-      if (cantidad < 1) {
-        removeItem(itemId);
-        return;
+        return newItems;
+      } else {
+        // Nuevo item
+        const newItem: ItemCarrito = {
+          id: itemId,
+          producto,
+          variante,
+          cantidad,
+          precio_unitario: producto.precio_base,
+        };
+        return [...currentItems, newItem];
       }
-
-      setCart((prevCart) => {
-        const newItems = prevCart.items.map((item) =>
-          item.id === itemId ? { ...item, cantidad } : item
-        );
-
-        return {
-          items: newItems,
-          total: calculateTotal(newItems),
-          itemCount: calculateItemCount(newItems),
-        };
-      });
-    },
-    [calculateTotal, calculateItemCount]
-  );
-
-  const removeItem = useCallback(
-    (itemId: string) => {
-      setCart((prevCart) => {
-        const newItems = prevCart.items.filter((item) => item.id !== itemId);
-
-        return {
-          items: newItems,
-          total: calculateTotal(newItems),
-          itemCount: calculateItemCount(newItems),
-        };
-      });
-    },
-    [calculateTotal, calculateItemCount]
-  );
-
-  const clearCart = useCallback(() => {
-    setCart({
-      items: [],
-      total: 0,
-      itemCount: 0,
     });
   }, []);
 
-  const getItem = useCallback(
-    (productoId: string, varianteId: string): CartItem | undefined => {
-      return cart.items.find(
-        (item) => item.producto_id === productoId && item.variante_id === varianteId
-      );
-    },
-    [cart.items]
+  const removeItem = useCallback((itemId: string) => {
+    setItems(currentItems => currentItems.filter(item => item.id !== itemId));
+  }, []);
+
+  const updateQuantity = useCallback((itemId: string, cantidad: number) => {
+    if (cantidad <= 0) {
+      removeItem(itemId);
+      return;
+    }
+
+    setItems(currentItems =>
+      currentItems.map(item =>
+        item.id === itemId ? { ...item, cantidad } : item
+      )
+    );
+  }, [removeItem]);
+
+  const clearCart = useCallback(() => {
+    setItems([]);
+  }, []);
+
+  const total = items.reduce(
+    (sum, item) => sum + item.precio_unitario * item.cantidad,
+    0
   );
 
-  const hasItem = useCallback(
-    (productoId: string, varianteId: string): boolean => {
-      return cart.items.some(
-        (item) => item.producto_id === productoId && item.variante_id === varianteId
-      );
-    },
-    [cart.items]
-  );
+  const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
   return {
-    items: cart.items,
-    total: cart.total,
-    itemCount: cart.itemCount,
-    isLoading,
+    items,
     addItem,
-    updateQuantity,
     removeItem,
+    updateQuantity,
     clearCart,
-    getItem,
-    hasItem,
+    total,
+    itemCount,
+    isLoading,
   };
 }
