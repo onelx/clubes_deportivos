@@ -1,211 +1,177 @@
 'use client';
 
-import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatPrice } from '@/lib/utils';
-import { ItemCarrito } from '@/types';
+import { useCart } from '@/hooks/useCart';
+import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import Link from 'next/link';
 
 interface CarritoDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: ItemCarrito[];
-  onUpdateCantidad: (varianteId: string, cantidad: number) => void;
-  onRemoveItem: (varianteId: string) => void;
-  onClearCart: () => void;
   clubSlug: string;
 }
 
-export function CarritoDrawer({
-  open,
-  onOpenChange,
-  items,
-  onUpdateCantidad,
-  onRemoveItem,
-  onClearCart,
-  clubSlug,
-}: CarritoDrawerProps) {
-  const subtotal = items.reduce((sum, item) => sum + item.precio_unitario * item.cantidad, 0);
-  const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
+export function CarritoDrawer({ open, onOpenChange, clubSlug }: CarritoDrawerProps) {
+  const { items, removeItem, updateQuantity, getTotal } = useCart();
 
-  const handleIncrement = (varianteId: string, currentCantidad: number) => {
-    if (currentCantidad < 10) {
-      onUpdateCantidad(varianteId, currentCantidad + 1);
+  const total = getTotal();
+  const totalFormateado = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+  }).format(total);
+
+  const handleIncrement = (itemId: string, currentQuantity: number) => {
+    if (currentQuantity < 10) {
+      updateQuantity(itemId, currentQuantity + 1);
     }
   };
 
-  const handleDecrement = (varianteId: string, currentCantidad: number) => {
-    if (currentCantidad > 1) {
-      onUpdateCantidad(varianteId, currentCantidad - 1);
-    } else {
-      onRemoveItem(varianteId);
+  const handleDecrement = (itemId: string, currentQuantity: number) => {
+    if (currentQuantity > 1) {
+      updateQuantity(itemId, currentQuantity - 1);
     }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5" />
-              Carrito ({itemCount})
-            </span>
-            {items.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearCart}
-                className="text-destructive hover:text-destructive"
-              >
-                Vaciar
-              </Button>
-            )}
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
+        <SheetHeader className="px-6 py-4 border-b">
+          <SheetTitle className="text-2xl font-bold flex items-center gap-2">
+            <ShoppingBag className="h-6 w-6" />
+            Carrito de Compras
           </SheetTitle>
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Tu carrito está vacío</h3>
-            <p className="text-muted-foreground mb-4">
-              Agregá productos para comenzar tu compra
+          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+            <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Tu carrito está vacío
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Agrega productos para comenzar tu compra
             </p>
-            <Button onClick={() => onOpenChange(false)} asChild>
-              <Link href={`/${clubSlug}/productos`}>Ver productos</Link>
+            <Button onClick={() => onOpenChange(false)}>
+              Continuar comprando
             </Button>
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <ScrollArea className="flex-1 px-6">
               <div className="space-y-4 py-4">
-                {items.map((item) => (
-                  <div key={item.variante.id} className="flex gap-4">
-                    {/* Imagen del producto */}
-                    <div className="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                      <Image
-                        src={item.producto.imagenes?.[0] || '/placeholder-product.png'}
-                        alt={item.producto.nombre}
-                        fill
-                        className="object-cover"
-                        sizes="80px"
-                      />
-                    </div>
+                {items.map((item) => {
+                  const subtotal = item.precio_unitario * item.cantidad;
+                  const subtotalFormateado = new Intl.NumberFormat('es-AR', {
+                    style: 'currency',
+                    currency: 'ARS',
+                  }).format(subtotal);
 
-                    {/* Información del producto */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm line-clamp-2 mb-1">
-                        {item.producto.nombre}
-                      </h4>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <span className="capitalize">{item.variante.talla}</span>
-                        <span>•</span>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className="w-3 h-3 rounded-full border"
-                            style={{ backgroundColor: item.variante.color.toLowerCase() }}
-                          />
-                          <span className="capitalize">{item.variante.color}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        {/* Selector de cantidad */}
-                        <div className="flex items-center gap-1 border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleDecrement(item.variante.id, item.cantidad)}
-                          >
-                            {item.cantidad === 1 ? (
-                              <Trash2 className="h-3 w-3" />
-                            ) : (
-                              <Minus className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <span className="w-8 text-center text-sm font-medium">
-                            {item.cantidad}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleIncrement(item.variante.id, item.cantidad)}
-                            disabled={item.cantidad >= 10}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-
-                        {/* Precio */}
-                        <div className="text-right">
-                          <p className="font-semibold">
-                            {formatPrice(item.precio_unitario * item.cantidad)}
-                          </p>
-                          {item.cantidad > 1 && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatPrice(item.precio_unitario)} c/u
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Botón eliminar */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 flex-shrink-0"
-                      onClick={() => onRemoveItem(item.variante.id)}
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex gap-4 bg-white rounded-lg border p-4 hover:shadow-md transition-shadow"
                     >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="h-20 w-20 flex-shrink-0 rounded-md bg-gray-100 overflow-hidden">
+                        <img
+                          src="/placeholder-product.jpg"
+                          alt="Producto"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 line-clamp-1">
+                              Producto ID: {item.producto_id.slice(0, 8)}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              Variante: {item.variante_id.slice(0, 8)}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-red-600"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDecrement(item.id, item.cantidad)}
+                              disabled={item.cantidad <= 1}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-8 text-center">
+                              {item.cantidad}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleIncrement(item.id, item.cantidad)}
+                              disabled={item.cantidad >= 10}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <span className="font-semibold text-gray-900">
+                            {subtotalFormateado}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
 
-            <Separator />
-
-            <SheetFooter className="flex-col gap-4">
-              {/* Resumen */}
-              <div className="space-y-2 w-full">
+            <div className="border-t bg-gray-50 px-6 py-4 space-y-4">
+              <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">{formatPrice(subtotal)}</span>
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium">{totalFormateado}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Envío</span>
+                  <span className="text-gray-600">Envío</span>
                   <span className="font-medium">Calculado en checkout</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{totalFormateado}</span>
                 </div>
               </div>
 
-              {/* Botones de acción */}
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  asChild
-                >
-                  <Link href={`/${clubSlug}/productos`}>Seguir comprando</Link>
-                </Button>
-                <Button asChild>
-                  <Link href={`/${clubSlug}/checkout`}>
-                    Finalizar compra
-                  </Link>
-                </Button>
-              </div>
-            </SheetFooter>
+              <Button
+                size="lg"
+                className="w-full"
+                asChild
+              >
+                <Link href={`/${clubSlug}/checkout`} onClick={() => onOpenChange(false)}>
+                  Ir al Checkout
+                </Link>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => onOpenChange(false)}
+              >
+                Continuar comprando
+              </Button>
+            </div>
           </>
         )}
       </SheetContent>
