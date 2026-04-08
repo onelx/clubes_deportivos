@@ -1,123 +1,118 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Producto, VarianteProducto } from '@/types';
+import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Badge } from '@/components/ui/badge';
-import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
-import { toast } from 'sonner';
+import { ShoppingCart, Check, Minus, Plus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductoDetalleProps {
   producto: Producto;
+  onAddToCart: (varianteId: string, cantidad: number) => void;
 }
 
-export function ProductoDetalle({ producto }: ProductoDetalleProps) {
-  const { addItem } = useCart();
-  const [selectedTalla, setSelectedTalla] = useState<string>('');
-  const [selectedColor, setSelectedColor] = useState<string>('');
+export function ProductoDetalle({ producto, onAddToCart }: ProductoDetalleProps) {
+  const { toast } = useToast();
+  const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
+  const [tallaSeleccionada, setTallaSeleccionada] = useState<string>('');
+  const [colorSeleccionado, setColorSeleccionado] = useState<string>('');
   const [cantidad, setCantidad] = useState(1);
-  const [imagenActual, setImagenActual] = useState(0);
+  const [agregando, setAgregando] = useState(false);
 
-  const imagenes = Array.isArray(producto.imagenes) && producto.imagenes.length > 0
-    ? producto.imagenes
-    : ['/placeholder-product.jpg'];
+  const imagenes = Array.isArray(producto.imagenes) && producto.imagenes.length > 0 
+    ? producto.imagenes 
+    : ['/placeholder-product.png'];
 
-  const tallas = [...new Set(producto.variantes?.map(v => v.talla).filter(Boolean) || [])];
-  const colores = [...new Set(producto.variantes?.map(v => v.color).filter(Boolean) || [])];
+  const variantesActivas = producto.variantes?.filter(v => v.activo) || [];
+  const tallasDisponibles = [...new Set(variantesActivas.map(v => v.talla))];
+  const coloresDisponibles = [...new Set(variantesActivas.map(v => v.color))];
 
-  const varianteSeleccionada = producto.variantes?.find(
-    v => 
-      (tallas.length === 0 || v.talla === selectedTalla) &&
-      (colores.length === 0 || v.color === selectedColor)
+  // Filtrar colores disponibles según la talla seleccionada
+  const coloresPorTalla = tallaSeleccionada
+    ? [...new Set(variantesActivas.filter(v => v.talla === tallaSeleccionada).map(v => v.color))]
+    : coloresDisponibles;
+
+  // Filtrar tallas disponibles según el color seleccionado
+  const tallasPorColor = colorSeleccionado
+    ? [...new Set(variantesActivas.filter(v => v.color === colorSeleccionado).map(v => v.talla))]
+    : tallasDisponibles;
+
+  // Obtener la variante seleccionada
+  const varianteSeleccionada = variantesActivas.find(
+    v => v.talla === tallaSeleccionada && v.color === colorSeleccionado
   );
 
-  const precioFormateado = new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(producto.precio_base);
-
-  const handleAddToCart = () => {
-    if (tallas.length > 0 && !selectedTalla) {
-      toast.error('Por favor selecciona una talla');
-      return;
-    }
-
-    if (colores.length > 0 && !selectedColor) {
-      toast.error('Por favor selecciona un color');
-      return;
-    }
-
+  const handleAgregarAlCarrito = async () => {
     if (!varianteSeleccionada) {
-      toast.error('Variante no disponible');
+      toast({
+        title: 'Selección incompleta',
+        description: 'Por favor, seleccioná talla y color',
+        variant: 'destructive',
+      });
       return;
     }
 
-    addItem({
-      producto_id: producto.id,
-      variante_id: varianteSeleccionada.id,
-      cantidad,
-      precio_unitario: producto.precio_base,
-      producto: {
-        nombre: producto.nombre,
-        imagen: imagenes[0],
-      },
-      variante: {
-        talla: varianteSeleccionada.talla,
-        color: varianteSeleccionada.color,
-        sku: varianteSeleccionada.sku,
-      },
-    });
-
-    toast.success(`${cantidad} ${cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito`);
+    setAgregando(true);
+    try {
+      await onAddToCart(varianteSeleccionada.id, cantidad);
+      toast({
+        title: 'Agregado al carrito',
+        description: `${cantidad}x ${producto.nombre} agregado correctamente`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo agregar el producto al carrito',
+        variant: 'destructive',
+      });
+    } finally {
+      setAgregando(false);
+    }
   };
 
-  const puedeAgregarAlCarrito = producto.activo && 
-    (tallas.length === 0 || selectedTalla) && 
-    (colores.length === 0 || selectedColor) &&
-    varianteSeleccionada?.activo;
+  const incrementarCantidad = () => setCantidad(prev => Math.min(prev + 1, 10));
+  const decrementarCantidad = () => setCantidad(prev => Math.max(prev - 1, 1));
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
       {/* Galería de imágenes */}
       <div className="space-y-4">
-        <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-          <img
-            src={imagenes[imagenActual]}
-            alt={producto.nombre}
-            className="object-cover w-full h-full"
+        {/* Imagen principal */}
+        <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+          <Image
+            src={imagenes[imagenSeleccionada]}
+            alt={`${producto.nombre} - Imagen ${imagenSeleccionada + 1}`}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 1024px) 100vw, 50vw"
           />
-          
-          {!producto.activo && (
-            <Badge 
-              variant="secondary" 
-              className="absolute top-4 right-4 bg-red-500 text-white"
-            >
-              No disponible
-            </Badge>
-          )}
         </div>
 
+        {/* Miniaturas */}
         {imagenes.length > 1 && (
           <div className="grid grid-cols-4 gap-2">
-            {imagenes.map((img, index) => (
+            {imagenes.map((imagen, idx) => (
               <button
-                key={index}
-                onClick={() => setImagenActual(index)}
-                className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${
-                  imagenActual === index 
+                key={idx}
+                onClick={() => setImagenSeleccionada(idx)}
+                className={`relative aspect-square overflow-hidden rounded-md border-2 transition-all ${
+                  idx === imagenSeleccionada 
                     ? 'border-primary' 
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-transparent hover:border-gray-300'
                 }`}
               >
-                <img
-                  src={img}
-                  alt={`${producto.nombre} - Vista ${index + 1}`}
-                  className="object-cover w-full h-full"
+                <Image
+                  src={imagen}
+                  alt={`${producto.nombre} - Miniatura ${idx + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="25vw"
                 />
               </button>
             ))}
@@ -127,151 +122,161 @@ export function ProductoDetalle({ producto }: ProductoDetalleProps) {
 
       {/* Información del producto */}
       <div className="space-y-6">
+        {/* Título y categoría */}
         <div>
+          <h1 className="text-3xl font-bold mb-2">{producto.nombre}</h1>
           {producto.categoria && (
-            <Badge variant="secondary" className="mb-2">
+            <Badge variant="secondary" className="mb-4">
               {producto.categoria}
             </Badge>
           )}
-          <h1 className="text-3xl font-bold mb-2">{producto.nombre}</h1>
-          <p className="text-3xl font-bold text-primary">{precioFormateado}</p>
         </div>
 
+        {/* Precio */}
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-bold text-primary">
+            {formatPrice(producto.precio_base)}
+          </span>
+        </div>
+
+        {/* Descripción */}
         {producto.descripcion && (
-          <div>
-            <h3 className="font-semibold mb-2">Descripción</h3>
-            <p className="text-gray-600 whitespace-pre-line">{producto.descripcion}</p>
+          <div className="prose prose-sm max-w-none">
+            <p className="text-muted-foreground">{producto.descripcion}</p>
           </div>
         )}
 
         {/* Selector de talla */}
-        {tallas.length > 0 && (
-          <div>
-            <Label className="mb-3 block">Talla</Label>
-            <RadioGroup value={selectedTalla} onValueChange={setSelectedTalla}>
-              <div className="flex gap-2 flex-wrap">
-                {tallas.map((talla) => {
-                  const variantesConTalla = producto.variantes?.filter(v => v.talla === talla && v.activo) || [];
-                  const disponible = variantesConTalla.length > 0;
-                  
-                  return (
-                    <div key={talla}>
-                      <RadioGroupItem
-                        value={talla || ''}
-                        id={`talla-${talla}`}
-                        className="peer sr-only"
-                        disabled={!disponible}
-                      />
-                      <Label
-                        htmlFor={`talla-${talla}`}
-                        className={`flex items-center justify-center px-4 py-2 border-2 rounded-md cursor-pointer transition-all ${
-                          disponible
-                            ? 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-white hover:border-gray-400'
-                            : 'opacity-50 cursor-not-allowed bg-gray-100'
-                        }`}
-                      >
-                        {talla}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
+        {tallasDisponibles.length > 0 && (
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Talla</Label>
+            <RadioGroup
+              value={tallaSeleccionada}
+              onValueChange={(value) => {
+                setTallaSeleccionada(value);
+                // Si el color actual no está disponible para esta talla, resetear
+                if (colorSeleccionado && !variantesActivas.some(v => v.talla === value && v.color === colorSeleccionado)) {
+                  setColorSeleccionado('');
+                }
+              }}
+              className="flex flex-wrap gap-2"
+            >
+              {tallasDisponibles.map((talla) => {
+                const disponible = !colorSeleccionado || tallasPorColor.includes(talla);
+                return (
+                  <div key={talla}>
+                    <RadioGroupItem
+                      value={talla}
+                      id={`talla-${talla}`}
+                      className="peer sr-only"
+                      disabled={!disponible}
+                    />
+                    <Label
+                      htmlFor={`talla-${talla}`}
+                      className={`flex items-center justify-center px-4 py-2 border-2 rounded-md cursor-pointer transition-all min-w-[60px] ${
+                        disponible
+                          ? 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground hover:border-primary'
+                          : 'opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      {talla}
+                      {tallaSeleccionada === talla && <Check className="ml-1 h-4 w-4" />}
+                    </Label>
+                  </div>
+                );
+              })}
             </RadioGroup>
           </div>
         )}
 
         {/* Selector de color */}
-        {colores.length > 0 && (
-          <div>
-            <Label className="mb-3 block">Color</Label>
-            <RadioGroup value={selectedColor} onValueChange={setSelectedColor}>
-              <div className="flex gap-2 flex-wrap">
-                {colores.map((color) => {
-                  const variantesConColor = producto.variantes?.filter(v => 
-                    v.color === color && 
-                    v.activo &&
-                    (tallas.length === 0 || v.talla === selectedTalla)
-                  ) || [];
-                  const disponible = variantesConColor.length > 0;
-
-                  return (
-                    <div key={color}>
-                      <RadioGroupItem
-                        value={color || ''}
-                        id={`color-${color}`}
-                        className="peer sr-only"
-                        disabled={!disponible}
+        {coloresDisponibles.length > 0 && (
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Color</Label>
+            <RadioGroup
+              value={colorSeleccionado}
+              onValueChange={(value) => {
+                setColorSeleccionado(value);
+                // Si la talla actual no está disponible para este color, resetear
+                if (tallaSeleccionada && !variantesActivas.some(v => v.color === value && v.talla === tallaSeleccionada)) {
+                  setTallaSeleccionada('');
+                }
+              }}
+              className="flex flex-wrap gap-3"
+            >
+              {coloresDisponibles.map((color) => {
+                const disponible = !tallaSeleccionada || coloresPorTalla.includes(color);
+                return (
+                  <div key={color}>
+                    <RadioGroupItem
+                      value={color}
+                      id={`color-${color}`}
+                      className="peer sr-only"
+                      disabled={!disponible}
+                    />
+                    <Label
+                      htmlFor={`color-${color}`}
+                      className={`flex items-center gap-2 px-4 py-2 border-2 rounded-md cursor-pointer transition-all ${
+                        disponible
+                          ? 'peer-data-[state=checked]:border-primary hover:border-primary'
+                          : 'opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full border-2 border-gray-300"
+                        style={{ backgroundColor: color.toLowerCase() }}
                       />
-                      <Label
-                        htmlFor={`color-${color}`}
-                        className={`flex flex-col items-center gap-1 cursor-pointer ${
-                          disponible ? '' : 'opacity-50 cursor-not-allowed'
-                        }`}
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-full border-2 transition-all ${
-                            disponible
-                              ? 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary peer-data-[state=checked]:ring-offset-2'
-                              : 'border-gray-300'
-                          }`}
-                          style={{ 
-                            backgroundColor: color?.toLowerCase(),
-                          }}
-                        />
-                        <span className="text-xs">{color}</span>
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
+                      <span className="capitalize">{color}</span>
+                      {colorSeleccionado === color && <Check className="ml-1 h-4 w-4" />}
+                    </Label>
+                  </div>
+                );
+              })}
             </RadioGroup>
           </div>
         )}
 
         {/* Selector de cantidad */}
-        <div>
-          <Label className="mb-3 block">Cantidad</Label>
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">Cantidad</Label>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+              onClick={decrementarCantidad}
               disabled={cantidad <= 1}
             >
               <Minus className="h-4 w-4" />
             </Button>
-            <span className="w-12 text-center font-semibold">{cantidad}</span>
+            <span className="text-xl font-semibold w-12 text-center">{cantidad}</span>
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setCantidad(Math.min(99, cantidad + 1))}
-              disabled={cantidad >= 99}
+              onClick={incrementarCantidad}
+              disabled={cantidad >= 10}
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Botón de agregar al carrito */}
+        {/* SKU si hay variante seleccionada */}
+        {varianteSeleccionada && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">SKU:</span> {varianteSeleccionada.sku}
+          </div>
+        )}
+
+        {/* Botón agregar al carrito */}
         <Button
           size="lg"
           className="w-full"
-          onClick={handleAddToCart}
-          disabled={!puedeAgregarAlCarrito}
+          onClick={handleAgregarAlCarrito}
+          disabled={!varianteSeleccionada || agregando}
         >
           <ShoppingCart className="mr-2 h-5 w-5" />
-          Agregar al carrito
+          {agregando ? 'Agregando...' : 'Agregar al carrito'}
         </Button>
-
-        {/* Información adicional */}
-        <div className="border-t pt-6 space-y-2 text-sm text-gray-600">
-          <p>✓ Producto fabricado bajo demanda</p>
-          <p>✓ Envío a todo el país</p>
-          <p>✓ Pago seguro con Stripe</p>
-          {varianteSeleccionada?.sku && (
-            <p className="text-xs text-gray-500">SKU: {varianteSeleccionada.sku}</p>
-          )}
-        </div>
       </div>
     </div>
   );
