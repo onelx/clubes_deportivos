@@ -14,22 +14,13 @@ export function QueryProvider({ children }: QueryProviderProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
-            gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+            staleTime: 60 * 1000, // 1 minuto
+            gcTime: 5 * 60 * 1000, // 5 minutos (anteriormente cacheTime)
             refetchOnWindowFocus: false,
-            retry: (failureCount, error) => {
-              // Don't retry on 4xx errors
-              if (error && typeof error === "object" && "status" in error) {
-                const status = (error as { status: number }).status;
-                if (status >= 400 && status < 500) {
-                  return false;
-                }
-              }
-              return failureCount < 3;
-            },
+            retry: 1,
           },
           mutations: {
-            retry: false,
+            retry: 1,
           },
         },
       })
@@ -38,7 +29,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === "development" && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 }
