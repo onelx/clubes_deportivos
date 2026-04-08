@@ -1,270 +1,356 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
+import type { EstadoPedido, ESTADOS_PEDIDO } from '@/types'
 
-// Combinar clases de Tailwind de forma segura
+// ===========================================
+// UTILIDADES DE CLASES CSS
+// ===========================================
+
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-// Formatear precio en moneda local
-export function formatPrice(
-  amount: number,
-  currency: string = "EUR",
-  locale: string = "es-ES"
-): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
+// ===========================================
+// FORMATEO DE PRECIOS Y NÚMEROS
+// ===========================================
+
+export function formatPrice(price: number, currency: string = 'EUR'): string {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
     currency,
-  }).format(amount);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price)
 }
 
-// Formatear fecha
-export function formatDate(
-  date: string | Date,
-  options?: Intl.DateTimeFormatOptions
-): string {
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  };
-
-  return new Intl.DateTimeFormat("es-ES", options || defaultOptions).format(
-    new Date(date)
-  );
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('es-ES').format(num)
 }
 
-// Formatear fecha con hora
+export function formatPercentage(value: number, decimals: number = 1): string {
+  return `${value.toFixed(decimals)}%`
+}
+
+// ===========================================
+// FORMATEO DE FECHAS
+// ===========================================
+
+export function formatDate(date: string | Date, formatStr: string = 'dd/MM/yyyy'): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  return format(dateObj, formatStr, { locale: es })
+}
+
 export function formatDateTime(date: string | Date): string {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  return format(dateObj, "dd/MM/yyyy 'a las' HH:mm", { locale: es })
 }
 
-// Generar número de pedido único
+export function formatRelativeTime(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  return formatDistanceToNow(dateObj, { addSuffix: true, locale: es })
+}
+
+// ===========================================
+// GENERADORES DE IDS Y SLUGS
+// ===========================================
+
 export function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+  return `ORD-${timestamp}-${random}`
 }
 
-// Generar SKU para variante
-export function generateSKU(
-  productoNombre: string,
-  talla?: string,
-  color?: string
-): string {
-  const base = productoNombre
-    .substring(0, 3)
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "");
-
-  const tallaCode = talla?.substring(0, 2).toUpperCase() || "XX";
-  const colorCode = color?.substring(0, 2).toUpperCase() || "XX";
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-
-  return `${base}-${tallaCode}-${colorCode}-${random}`;
+export function generateSKU(producto: string, talla: string, color: string): string {
+  const productoCode = producto.substring(0, 3).toUpperCase()
+  const tallaCode = talla.toUpperCase()
+  const colorCode = color.substring(0, 3).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
+  return `${productoCode}-${tallaCode}-${colorCode}-${random}`
 }
 
-// Truncar texto con ellipsis
-export function truncate(str: string, length: number): string {
-  if (str.length <= length) return str;
-  return str.slice(0, length) + "...";
-}
-
-// Capitalizar primera letra
-export function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-
-// Convertir string a slug
-export function slugify(str: string): string {
-  return str
+export function slugify(text: string): string {
+  return text
     .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+    .replace(/[^a-z0-9]+/g, '-')     // Reemplazar caracteres especiales
+    .replace(/^-+|-+$/g, '')          // Quitar guiones al inicio/final
+    .substring(0, 50)                 // Limitar longitud
 }
 
-// Validar email
+// ===========================================
+// VALIDACIONES
+// ===========================================
+
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
 }
 
-// Calcular porcentaje
-export function calculatePercentage(value: number, total: number): number {
-  if (total === 0) return 0;
-  return Math.round((value / total) * 100);
+export function isValidPhone(phone: string): boolean {
+  const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/
+  return phone.length >= 9 && phoneRegex.test(phone)
 }
 
-// Calcular comisión de la plataforma
-export function calculatePlatformCommission(
-  subtotal: number,
-  commissionRate: number
-): number {
-  return Math.round(subtotal * (commissionRate / 100) * 100) / 100;
+export function isValidPostalCode(code: string, country: string = 'ES'): boolean {
+  const patterns: Record<string, RegExp> = {
+    ES: /^[0-9]{5}$/,
+    PT: /^[0-9]{4}-[0-9]{3}$/,
+    FR: /^[0-9]{5}$/,
+    DE: /^[0-9]{5}$/,
+  }
+  return patterns[country]?.test(code) ?? code.length >= 4
 }
 
-// Calcular pago al club
-export function calculateClubPayment(
-  subtotal: number,
-  costProduction: number,
-  commissionRate: number
-): number {
-  const commission = calculatePlatformCommission(subtotal, commissionRate);
-  return Math.round((subtotal - costProduction - commission) * 100) / 100;
+export function isValidSlug(slug: string): boolean {
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+  return slugRegex.test(slug) && slug.length >= 3 && slug.length <= 50
 }
 
-// Debounce function
+// ===========================================
+// UTILIDADES DE ARRAYS Y OBJETOS
+// ===========================================
+
+export function groupBy<T, K extends string | number>(
+  array: T[],
+  keyFn: (item: T) => K
+): Record<K, T[]> {
+  return array.reduce((result, item) => {
+    const key = keyFn(item)
+    if (!result[key]) {
+      result[key] = []
+    }
+    result[key].push(item)
+    return result
+  }, {} as Record<K, T[]>)
+}
+
+export function sortBy<T>(
+  array: T[],
+  keyFn: (item: T) => string | number,
+  direction: 'asc' | 'desc' = 'asc'
+): T[] {
+  return [...array].sort((a, b) => {
+    const aVal = keyFn(a)
+    const bVal = keyFn(b)
+    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+    return direction === 'asc' ? comparison : -comparison
+  })
+}
+
+export function uniqueBy<T>(array: T[], keyFn: (item: T) => string | number): T[] {
+  const seen = new Set<string | number>()
+  return array.filter((item) => {
+    const key = keyFn(item)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+// ===========================================
+// UTILIDADES DE STRINGS
+// ===========================================
+
+export function truncate(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str
+  return str.substring(0, maxLength - 3) + '...'
+}
+
+export function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+export function titleCase(str: string): string {
+  return str
+    .split(' ')
+    .map((word) => capitalize(word))
+    .join(' ')
+}
+
+// ===========================================
+// UTILIDADES DE COLORES
+// ===========================================
+
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null
+}
+
+export function isLightColor(hex: string): boolean {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return true
+  // Fórmula de luminosidad percibida
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255
+  return luminance > 0.5
+}
+
+export function getContrastColor(hex: string): string {
+  return isLightColor(hex) ? '#000000' : '#FFFFFF'
+}
+
+// ===========================================
+// UTILIDADES DE ESTADOS DE PEDIDO
+// ===========================================
+
+export function getEstadoPedidoConfig(estado: EstadoPedido) {
+  const estados: Record<EstadoPedido, { label: string; color: string; bgColor: string }> = {
+    pendiente: { label: 'Pendiente', color: 'text-yellow-800', bgColor: 'bg-yellow-100' },
+    pagado: { label: 'Pagado', color: 'text-green-800', bgColor: 'bg-green-100' },
+    en_produccion: { label: 'En Producción', color: 'text-blue-800', bgColor: 'bg-blue-100' },
+    enviado: { label: 'Enviado', color: 'text-purple-800', bgColor: 'bg-purple-100' },
+    entregado: { label: 'Entregado', color: 'text-gray-800', bgColor: 'bg-gray-100' },
+    cancelado: { label: 'Cancelado', color: 'text-red-800', bgColor: 'bg-red-100' },
+  }
+  return estados[estado]
+}
+
+export function canTransitionTo(currentState: EstadoPedido, newState: EstadoPedido): boolean {
+  const transitions: Record<EstadoPedido, EstadoPedido[]> = {
+    pendiente: ['pagado', 'cancelado'],
+    pagado: ['en_produccion', 'cancelado'],
+    en_produccion: ['enviado', 'cancelado'],
+    enviado: ['entregado'],
+    entregado: [],
+    cancelado: [],
+  }
+  return transitions[currentState].includes(newState)
+}
+
+// ===========================================
+// UTILIDADES DE CÁLCULOS
+// ===========================================
+
+export function calcularSubtotal(items: { cantidad: number; precio_unitario: number }[]): number {
+  return items.reduce((sum, item) => sum + item.cantidad * item.precio_unitario, 0)
+}
+
+export function calcularComision(total: number, porcentaje: number): number {
+  return Math.round((total * porcentaje) / 100 * 100) / 100
+}
+
+export function calcularPagoClub(total: number, comision: number): number {
+  return Math.round((total - comision) * 100) / 100
+}
+
+// ===========================================
+// DEBOUNCE Y THROTTLE
+// ===========================================
+
 export function debounce<T extends (...args: unknown[]) => unknown>(
-  func: T,
-  wait: number
+  fn: T,
+  delay: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+  let timeoutId: NodeJS.Timeout
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }
 }
 
-// Throttle function
 export function throttle<T extends (...args: unknown[]) => unknown>(
-  func: T,
+  fn: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
-
-  return function executedFunction(...args: Parameters<T>) {
+  let inThrottle = false
+  return (...args: Parameters<T>) => {
     if (!inThrottle) {
-      func(...args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
+      fn(...args)
+      inThrottle = true
+      setTimeout(() => (inThrottle = false), limit)
     }
-  };
-}
-
-// Parsear JSON de forma segura
-export function safeJsonParse<T>(json: string, fallback: T): T {
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return fallback;
   }
 }
 
-// Obtener iniciales de un nombre
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+// ===========================================
+// UTILIDADES DE URL
+// ===========================================
+
+export function buildUrl(base: string, params: Record<string, string | number | undefined>): string {
+  const url = new URL(base)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      url.searchParams.set(key, String(value))
+    }
+  })
+  return url.toString()
 }
 
-// Generar color aleatorio pero consistente basado en string
-export function stringToColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 50%)`;
-}
-
-// Verificar si es dispositivo móvil (client-side)
-export function isMobile(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.innerWidth < 768;
-}
-
-// Copiar texto al portapapeles
-export async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Delay/sleep utility
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// Obtener URL base de la aplicación
 export function getBaseUrl(): string {
-  if (typeof window !== "undefined") {
-    return window.location.origin;
+  if (typeof window !== 'undefined') {
+    return window.location.origin
   }
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+}
 
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+// ===========================================
+// ASYNC HELPERS
+// ===========================================
+
+export async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export async function retry<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      if (attempt < maxAttempts) {
+        await sleep(delay * attempt)
+      }
+    }
   }
+  
+  throw lastError
+}
 
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+// ===========================================
+// STORAGE HELPERS
+// ===========================================
+
+export function getFromStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined') return defaultValue
+  
+  try {
+    const item = localStorage.getItem(key)
+    return item ? JSON.parse(item) : defaultValue
+  } catch {
+    return defaultValue
   }
-
-  return "http://localhost:3000";
 }
 
-// Construir URL de tienda de club
-export function getClubStoreUrl(slug: string): string {
-  return `${getBaseUrl()}/tienda/${slug}`;
+export function setToStorage<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return
+  
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    console.error('Error saving to localStorage')
+  }
 }
 
-// Construir URL de producto
-export function getProductUrl(clubSlug: string, productId: string): string {
-  return `${getBaseUrl()}/tienda/${clubSlug}/producto/${productId}`;
-}
-
-// Formatear número con separadores de miles
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat("es-ES").format(num);
-}
-
-// Obtener diferencia de tiempo legible
-export function getTimeAgo(date: string | Date): string {
-  const now = new Date();
-  const past = new Date(date);
-  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return "hace unos segundos";
-  if (diffInSeconds < 3600)
-    return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
-  if (diffInSeconds < 86400)
-    return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
-  if (diffInSeconds < 2592000)
-    return `hace ${Math.floor(diffInSeconds / 86400)} días`;
-  if (diffInSeconds < 31536000)
-    return `hace ${Math.floor(diffInSeconds / 2592000)} meses`;
-
-  return `hace ${Math.floor(diffInSeconds / 31536000)} años`;
-}
-
-// Validar código postal español
-export function isValidSpanishPostalCode(code: string): boolean {
-  const postalCodeRegex = /^(?:0[1-9]|[1-4]\d|5[0-2])\d{3}$/;
-  return postalCodeRegex.test(code);
-}
-
-// Validar teléfono español
-export function isValidSpanishPhone(phone: string): boolean {
-  const phoneRegex = /^(?:\+34)?[6789]\d{8}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ""));
+export function removeFromStorage(key: string): void {
+  if (typeof window === 'undefined') return
+  
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    console.error('Error removing from localStorage')
+  }
 }
