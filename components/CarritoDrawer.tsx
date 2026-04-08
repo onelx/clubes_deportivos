@@ -1,177 +1,206 @@
 'use client';
 
-import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
-import { useCart } from '@/hooks/useCart';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-interface CarritoDrawerProps {
-  clubSlug: string;
-  clubColorPrimario?: string;
-}
+export function CarritoDrawer() {
+  const router = useRouter();
+  const { items, updateQuantity, removeItem, total, clearCart } = useCart();
+  const [isOpen, setIsOpen] = useState(false);
 
-export function CarritoDrawer({ clubSlug, clubColorPrimario }: CarritoDrawerProps) {
-  const { items, removeItem, updateQuantity, getTotalPrice } = useCart();
+  useEffect(() => {
+    const handleOpenCart = () => {
+      setIsOpen(true);
+    };
 
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(precio);
+    window.addEventListener('openCart', handleOpenCart);
+    return () => window.removeEventListener('openCart', handleOpenCart);
+  }, []);
+
+  const totalFormateado = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(total);
+
+  const handleCheckout = () => {
+    setIsOpen(false);
+    const clubSlug = window.location.pathname.split('/')[1];
+    router.push(`/${clubSlug}/checkout`);
   };
 
-  const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0);
-  const total = getTotalPrice();
-
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="relative"
-          style={{
-            borderColor: clubColorPrimario,
-            color: clubColorPrimario,
-          }}
-        >
-          <ShoppingBag className="h-5 w-5" />
-          {totalItems > 0 && (
-            <span
-              className="absolute -top-2 -right-2 h-6 w-6 rounded-full text-white text-xs font-bold flex items-center justify-center"
-              style={{ backgroundColor: clubColorPrimario }}
-            >
-              {totalItems}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
-
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
-          <SheetTitle>Carrito de Compras</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            Carrito de Compras
+          </SheetTitle>
+          <SheetDescription>
+            {items.length === 0 
+              ? 'Tu carrito está vacío' 
+              : `${items.length} ${items.length === 1 ? 'producto' : 'productos'} en tu carrito`
+            }
+          </SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Tu carrito está vacío</h3>
-            <p className="text-gray-500 mb-4">Agrega productos para comenzar tu compra</p>
-            <Link href={`/${clubSlug}/productos`}>
-              <Button
-                style={{
-                  backgroundColor: clubColorPrimario,
-                  color: 'white',
-                }}
-              >
-                Ver Productos
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <ShoppingBag className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500 mb-4">Tu carrito está vacío</p>
+              <Button onClick={() => setIsOpen(false)}>
+                Seguir comprando
               </Button>
-            </Link>
+            </div>
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 -mx-6 px-6">
-              <div className="space-y-4 py-4">
-                {items.map(item => (
-                  <div key={item.variante_id} className="flex gap-4 pb-4 border-b">
-                    <img
-                      src={item.imagen || '/placeholder-product.png'}
-                      alt={item.nombre_producto}
-                      className="w-20 h-20 object-cover rounded-md bg-gray-100"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm mb-1 truncate">
-                        {item.nombre_producto}
-                      </h4>
-                      <div className="text-xs text-gray-600 space-y-0.5">
-                        {item.talla && <p>Talla: {item.talla}</p>}
-                        {item.color && (
-                          <p className="flex items-center gap-1">
-                            Color:
-                            <span
-                              className="inline-block w-3 h-3 rounded-full border"
-                              style={{ backgroundColor: item.color }}
-                            />
-                            {item.color}
-                          </p>
-                        )}
+            <div className="flex-1 overflow-y-auto py-4">
+              <div className="space-y-4">
+                {items.map((item) => {
+                  const precioFormateado = new Intl.NumberFormat('es-AR', {
+                    style: 'currency',
+                    currency: 'ARS',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(item.precio_unitario);
+
+                  const subtotalFormateado = new Intl.NumberFormat('es-AR', {
+                    style: 'currency',
+                    currency: 'ARS',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(item.subtotal);
+
+                  return (
+                    <div key={`${item.producto_id}-${item.variante_id}`} className="flex gap-4">
+                      <div className="w-20 h-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img
+                          src={item.producto.imagen}
+                          alt={item.producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <p className="font-semibold mt-1">
-                        {formatearPrecio(item.precio_unitario)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end justify-between">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => removeItem(item.variante_id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() =>
-                            updateQuantity(item.variante_id, Math.max(1, item.cantidad - 1))
-                          }
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="text-sm font-medium w-6 text-center">
-                          {item.cantidad}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => updateQuantity(item.variante_id, item.cantidad + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm line-clamp-1">
+                          {item.producto.nombre}
+                        </h4>
+                        
+                        <div className="flex gap-2 mt-1 text-xs text-gray-600">
+                          {item.variante.talla && (
+                            <span>Talla: {item.variante.talla}</span>
+                          )}
+                          {item.variante.color && (
+                            <span>Color: {item.variante.color}</span>
+                          )}
+                        </div>
+
+                        <p className="text-sm font-medium mt-1">
+                          {precioFormateado}
+                        </p>
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.producto_id, item.variante_id, Math.max(1, item.cantidad - 1))}
+                            disabled={item.cantidad <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          
+                          <span className="w-8 text-center text-sm font-medium">
+                            {item.cantidad}
+                          </span>
+                          
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.producto_id, item.variante_id, Math.min(99, item.cantidad + 1))}
+                            disabled={item.cantidad >= 99}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 ml-auto text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeItem(item.producto_id, item.variante_id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-semibold text-sm">
+                          {subtotalFormateado}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </ScrollArea>
+            </div>
 
             <div className="border-t pt-4 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total</span>
-                <span className="text-2xl font-bold" style={{ color: clubColorPrimario }}>
-                  {formatearPrecio(total)}
+                <span className="text-2xl font-bold text-primary">
+                  {totalFormateado}
                 </span>
               </div>
 
-              <Link href={`/${clubSlug}/checkout`} className="block">
-                <Button
-                  size="lg"
-                  className="w-full"
-                  style={{
-                    backgroundColor: clubColorPrimario,
-                    color: 'white',
-                  }}
-                >
-                  Proceder al Checkout
-                </Button>
-              </Link>
+              <Separator />
 
-              <Link href={`/${clubSlug}/productos`}>
-                <Button variant="outline" className="w-full">
-                  Seguir Comprando
+              <div className="space-y-2">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleCheckout}
+                >
+                  Finalizar compra
                 </Button>
-              </Link>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Seguir comprando
+                </Button>
+
+                {items.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      clearCart();
+                      setIsOpen(false);
+                    }}
+                  >
+                    Vaciar carrito
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
