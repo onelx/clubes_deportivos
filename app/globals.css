@@ -62,20 +62,16 @@
   .club-primary {
     background-color: var(--club-primary, hsl(var(--primary)));
   }
-  
   .club-secondary {
     background-color: var(--club-secondary, hsl(var(--secondary)));
   }
-  
-  .text-club-primary {
+  .club-text-primary {
     color: var(--club-primary, hsl(var(--primary)));
   }
-  
-  .text-club-secondary {
+  .club-text-secondary {
     color: var(--club-secondary, hsl(var(--secondary)));
   }
-  
-  .border-club-primary {
+  .club-border-primary {
     border-color: var(--club-primary, hsl(var(--primary)));
   }
 }
