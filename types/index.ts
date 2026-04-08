@@ -17,7 +17,6 @@ export interface UsuarioClub {
   auth_user_id: string;
   rol: 'admin' | 'editor' | 'viewer';
   created_at: string;
-  club?: Club;
 }
 
 export interface Producto {
@@ -31,8 +30,8 @@ export interface Producto {
   imagenes: string[];
   activo: boolean;
   created_at: string;
-  club?: Club;
   variantes?: VarianteProducto[];
+  club?: Club;
 }
 
 export interface VarianteProducto {
@@ -42,25 +41,25 @@ export interface VarianteProducto {
   color: string | null;
   sku: string | null;
   activo: boolean;
-  producto?: Producto;
 }
 
 export type EstadoPedido = 
-  | 'pending' 
-  | 'paid' 
-  | 'production' 
-  | 'shipped' 
-  | 'delivered' 
-  | 'cancelled';
+  | 'pendiente' 
+  | 'pagado' 
+  | 'produccion' 
+  | 'enviado' 
+  | 'entregado' 
+  | 'cancelado';
 
 export interface DireccionEnvio {
   nombre: string;
+  apellido: string;
   direccion: string;
   ciudad: string;
-  estado: string;
+  provincia: string;
   codigo_postal: string;
   pais: string;
-  telefono?: string;
+  telefono: string;
 }
 
 export interface Pedido {
@@ -81,8 +80,8 @@ export interface Pedido {
   created_at: string;
   paid_at: string | null;
   shipped_at: string | null;
-  club?: Club;
   items?: ItemPedido[];
+  club?: Club;
 }
 
 export interface ItemPedido {
@@ -97,64 +96,90 @@ export interface ItemPedido {
   variante?: VarianteProducto;
 }
 
-export interface CarritoItem {
+export interface CartItem {
   producto: Producto;
   variante: VarianteProducto | null;
   cantidad: number;
 }
 
-export interface CarritoState {
-  items: CarritoItem[];
-  addItem: (producto: Producto, variante: VarianteProducto | null, cantidad: number) => void;
-  removeItem: (productoId: string, varianteId: string | null) => void;
-  updateQuantity: (productoId: string, varianteId: string | null, cantidad: number) => void;
-  clearCart: () => void;
-  getTotal: () => number;
-  getItemCount: () => number;
-}
-
-export interface CheckoutFormData {
-  cliente_nombre: string;
-  cliente_email: string;
-  direccion: string;
-  ciudad: string;
-  estado: string;
-  codigo_postal: string;
-  pais: string;
-  telefono?: string;
+export interface Cart {
+  items: CartItem[];
+  subtotal: number;
+  total: number;
 }
 
 export interface EstadisticasClub {
   ventas_totales: number;
-  ventas_mes_actual: number;
   pedidos_totales: number;
-  pedidos_pendientes: number;
-  comisiones_pendientes: number;
+  comision_total: number;
+  pago_total: number;
   productos_activos: number;
-  productos_top: Array<{
-    producto: Producto;
-    cantidad_vendida: number;
-    total_ventas: number;
-  }>;
-  ventas_por_mes: Array<{
-    mes: string;
-    ventas: number;
-    pedidos: number;
-  }>;
+  pedidos_pendientes: number;
+  pedidos_mes_actual: number;
+  ventas_mes_actual: number;
+  productos_mas_vendidos: ProductoMasVendido[];
+  ventas_por_mes: VentasPorMes[];
 }
 
-export interface ProductoFormData {
+export interface ProductoMasVendido {
+  producto_id: string;
   nombre: string;
-  descripcion: string;
+  cantidad_vendida: number;
+  total_ventas: number;
+}
+
+export interface VentasPorMes {
+  mes: string;
+  total: number;
+  cantidad_pedidos: number;
+}
+
+export interface CreateProductoInput {
+  nombre: string;
+  descripcion?: string;
   precio_base: number;
   costo_produccion: number;
-  categoria: string;
-  imagenes: string[];
-  variantes: Array<{
-    talla: string;
-    color: string;
-    sku: string;
-  }>;
+  categoria?: string;
+  imagenes?: string[];
+  variantes?: Omit<VarianteProducto, 'id' | 'producto_id'>[];
+}
+
+export interface UpdateProductoInput extends Partial<CreateProductoInput> {
+  activo?: boolean;
+}
+
+export interface CreatePedidoInput {
+  club_id: string;
+  cliente_email: string;
+  cliente_nombre: string;
+  direccion_envio: DireccionEnvio;
+  items: {
+    producto_id: string;
+    variante_id: string | null;
+    cantidad: number;
+    precio_unitario: number;
+  }[];
+}
+
+export interface StripeCheckoutSession {
+  sessionId: string;
+  url: string;
+}
+
+export interface WebhookEvent {
+  id: string;
+  type: string;
+  data: {
+    object: any;
+  };
+}
+
+export interface UpdateClubInput {
+  nombre?: string;
+  logo_url?: string;
+  color_primario?: string;
+  color_secundario?: string;
+  activo?: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -167,98 +192,16 @@ export interface PaginatedResponse<T> {
   data: T[];
   total: number;
   page: number;
-  pageSize: number;
-  totalPages: number;
+  per_page: number;
+  total_pages: number;
 }
 
-export interface EstadoPedidoTimeline {
-  estado: EstadoPedido;
-  fecha: string | null;
-  activo: boolean;
-  descripcion: string;
-}
-
-export interface StripeCheckoutSession {
-  sessionId: string;
-  url: string;
-}
-
-export interface WebhookEvent {
-  type: string;
-  data: {
-    object: {
-      id: string;
-      [key: string]: unknown;
-    };
-  };
-}
-
-export interface ClubConfig {
-  nombre: string;
-  logo_url: string | null;
-  color_primario: string;
-  color_secundario: string;
-  comision_porcentaje: number;
-  stripe_account_id: string | null;
-}
-
-export interface FiltrosPedidos {
+export interface FilterOptions {
+  page?: number;
+  per_page?: number;
+  search?: string;
   estado?: EstadoPedido;
+  categoria?: string;
   fecha_desde?: string;
   fecha_hasta?: string;
-  busqueda?: string;
-  page?: number;
-  pageSize?: number;
 }
-
-export interface FiltrosProductos {
-  categoria?: string;
-  activo?: boolean;
-  busqueda?: string;
-  page?: number;
-  pageSize?: number;
-}
-
-export const CATEGORIAS_PRODUCTO = [
-  'Camisetas',
-  'Pantalones',
-  'Shorts',
-  'Buzos',
-  'Accesorios',
-  'Calzado',
-  'Equipamiento',
-  'Otros',
-] as const;
-
-export type CategoriaProducto = typeof CATEGORIAS_PRODUCTO[number];
-
-export const TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
-export type Talla = typeof TALLAS[number];
-
-export const COLORES = [
-  { nombre: 'Blanco', hex: '#FFFFFF' },
-  { nombre: 'Negro', hex: '#000000' },
-  { nombre: 'Rojo', hex: '#FF0000' },
-  { nombre: 'Azul', hex: '#0000FF' },
-  { nombre: 'Verde', hex: '#00FF00' },
-  { nombre: 'Amarillo', hex: '#FFFF00' },
-  { nombre: 'Gris', hex: '#808080' },
-] as const;
-
-export const ESTADOS_PEDIDO_LABELS: Record<EstadoPedido, string> = {
-  pending: 'Pendiente de Pago',
-  paid: 'Pagado',
-  production: 'En Producción',
-  shipped: 'Enviado',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-};
-
-export const ESTADOS_PEDIDO_COLORS: Record<EstadoPedido, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-blue-100 text-blue-800',
-  production: 'bg-purple-100 text-purple-800',
-  shipped: 'bg-indigo-100 text-indigo-800',
-  delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-};
