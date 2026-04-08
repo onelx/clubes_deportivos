@@ -1,6 +1,6 @@
-// ==========================================
-// Database Models
-// ==========================================
+// ============================================
+// TIPOS BASE DE LA BASE DE DATOS
+// ============================================
 
 export interface Club {
   id: string;
@@ -31,15 +31,9 @@ export interface Producto {
   precio_base: number;
   costo_produccion: number;
   categoria: string | null;
-  imagenes: ProductoImagen[];
+  imagenes: string[];
   activo: boolean;
   created_at: string;
-}
-
-export interface ProductoImagen {
-  url: string;
-  alt?: string;
-  orden?: number;
 }
 
 export interface VarianteProducto {
@@ -48,9 +42,26 @@ export interface VarianteProducto {
   talla: string | null;
   color: string | null;
   sku: string;
-  stock: number;
   activo: boolean;
 }
+
+export interface DireccionEnvio {
+  nombre: string;
+  direccion: string;
+  ciudad: string;
+  provincia: string;
+  codigo_postal: string;
+  pais: string;
+  telefono: string;
+}
+
+export type EstadoPedido =
+  | "pendiente"
+  | "pagado"
+  | "en_produccion"
+  | "enviado"
+  | "entregado"
+  | "cancelado";
 
 export interface Pedido {
   id: string;
@@ -59,7 +70,6 @@ export interface Pedido {
   estado: EstadoPedido;
   cliente_email: string;
   cliente_nombre: string;
-  cliente_telefono: string | null;
   direccion_envio: DireccionEnvio;
   subtotal: number;
   costo_envio: number;
@@ -67,13 +77,10 @@ export interface Pedido {
   comision_plataforma: number | null;
   pago_club: number | null;
   stripe_payment_intent_id: string | null;
-  stripe_checkout_session_id: string | null;
   tracking_number: string | null;
-  notas: string | null;
   created_at: string;
   paid_at: string | null;
   shipped_at: string | null;
-  delivered_at: string | null;
 }
 
 export interface ItemPedido {
@@ -86,166 +93,16 @@ export interface ItemPedido {
   subtotal: number;
 }
 
-// ==========================================
-// Enums and Constants
-// ==========================================
-
-export type EstadoPedido = 
-  | "pendiente"
-  | "pagado"
-  | "en_produccion"
-  | "producido"
-  | "enviado"
-  | "entregado"
-  | "cancelado"
-  | "reembolsado";
-
-export const ESTADOS_PEDIDO: Record<EstadoPedido, { label: string; color: string }> = {
-  pendiente: { label: "Pendiente de pago", color: "bg-yellow-100 text-yellow-800" },
-  pagado: { label: "Pagado", color: "bg-blue-100 text-blue-800" },
-  en_produccion: { label: "En producción", color: "bg-purple-100 text-purple-800" },
-  producido: { label: "Producido", color: "bg-indigo-100 text-indigo-800" },
-  enviado: { label: "Enviado", color: "bg-cyan-100 text-cyan-800" },
-  entregado: { label: "Entregado", color: "bg-green-100 text-green-800" },
-  cancelado: { label: "Cancelado", color: "bg-gray-100 text-gray-800" },
-  reembolsado: { label: "Reembolsado", color: "bg-red-100 text-red-800" },
-};
-
-export const CATEGORIAS_PRODUCTO = [
-  "camisetas",
-  "pantalones",
-  "sudaderas",
-  "chaquetas",
-  "accesorios",
-  "equipamiento",
-  "otros",
-] as const;
-
-export type CategoriaProducto = typeof CATEGORIAS_PRODUCTO[number];
-
-export const TALLAS = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] as const;
-export type Talla = typeof TALLAS[number];
-
-export const COLORES = [
-  { nombre: "Negro", valor: "#000000" },
-  { nombre: "Blanco", valor: "#FFFFFF" },
-  { nombre: "Rojo", valor: "#EF4444" },
-  { nombre: "Azul", valor: "#3B82F6" },
-  { nombre: "Verde", valor: "#22C55E" },
-  { nombre: "Amarillo", valor: "#EAB308" },
-  { nombre: "Naranja", valor: "#F97316" },
-  { nombre: "Morado", valor: "#A855F7" },
-  { nombre: "Gris", valor: "#6B7280" },
-  { nombre: "Rosa", valor: "#EC4899" },
-] as const;
-
-// ==========================================
-// API Types
-// ==========================================
-
-export interface DireccionEnvio {
-  nombre: string;
-  direccion: string;
-  ciudad: string;
-  provincia: string;
-  codigo_postal: string;
-  pais: string;
-  telefono?: string;
-  instrucciones?: string;
-}
-
-export interface CreatePedidoInput {
-  club_id: string;
-  cliente_email: string;
-  cliente_nombre: string;
-  cliente_telefono?: string;
-  direccion_envio: DireccionEnvio;
-  items: CreateItemPedidoInput[];
-}
-
-export interface CreateItemPedidoInput {
-  producto_id: string;
-  variante_id?: string;
-  cantidad: number;
-}
-
-export interface CreateProductoInput {
-  nombre: string;
-  descripcion?: string;
-  precio_base: number;
-  costo_produccion: number;
-  categoria?: CategoriaProducto;
-  imagenes?: ProductoImagen[];
-  variantes?: CreateVarianteInput[];
-}
-
-export interface UpdateProductoInput extends Partial<CreateProductoInput> {
-  activo?: boolean;
-}
-
-export interface CreateVarianteInput {
-  talla?: string;
-  color?: string;
-  sku?: string;
-  stock?: number;
-}
-
-export interface UpdateClubInput {
-  nombre?: string;
-  logo_url?: string;
-  color_primario?: string;
-  color_secundario?: string;
-}
-
-// ==========================================
-// Cart Types
-// ==========================================
-
-export interface CartItem {
-  producto_id: string;
-  variante_id: string | null;
-  cantidad: number;
-  producto: Producto;
-  variante: VarianteProducto | null;
-}
-
-export interface Cart {
-  club_slug: string;
-  items: CartItem[];
-  subtotal: number;
-  costo_envio: number;
-  total: number;
-}
-
-// ==========================================
-// Response Types
-// ==========================================
-
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// ==========================================
-// Extended Types (with relations)
-// ==========================================
+// ============================================
+// TIPOS EXTENDIDOS CON RELACIONES
+// ============================================
 
 export interface ProductoConVariantes extends Producto {
   variantes: VarianteProducto[];
 }
 
-export interface PedidoConItems extends Pedido {
-  items: ItemPedidoConProducto[];
-  club?: Club;
+export interface ProductoConClub extends Producto {
+  club: Club;
 }
 
 export interface ItemPedidoConProducto extends ItemPedido {
@@ -253,124 +110,264 @@ export interface ItemPedidoConProducto extends ItemPedido {
   variante: VarianteProducto | null;
 }
 
-export interface ClubConEstadisticas extends Club {
-  total_productos: number;
-  total_pedidos: number;
-  total_ventas: number;
+export interface PedidoConItems extends Pedido {
+  items: ItemPedidoConProducto[];
 }
 
-// ==========================================
-// Dashboard Stats Types
-// ==========================================
-
-export interface EstadisticasClub {
-  ventas_totales: number;
-  ventas_mes: number;
-  pedidos_totales: number;
-  pedidos_mes: number;
-  comisiones_pagadas: number;
-  productos_activos: number;
-  productos_top: ProductoTop[];
-  ventas_por_mes: VentaMensual[];
+export interface PedidoConClub extends Pedido {
+  club: Club;
 }
 
-export interface ProductoTop {
+export interface ClubConUsuarios extends Club {
+  usuarios: UsuarioClub[];
+}
+
+// ============================================
+// TIPOS PARA EL CARRITO
+// ============================================
+
+export interface ItemCarrito {
   producto_id: string;
-  nombre: string;
-  cantidad_vendida: number;
-  ingresos: number;
-}
-
-export interface VentaMensual {
-  mes: string;
-  total: number;
+  variante_id: string | null;
   cantidad: number;
+  producto: Producto;
+  variante: VarianteProducto | null;
 }
 
-// ==========================================
-// Form Types
-// ==========================================
-
-export interface CheckoutFormData {
-  email: string;
-  nombre: string;
-  telefono: string;
-  direccion: string;
-  ciudad: string;
-  provincia: string;
-  codigo_postal: string;
-  pais: string;
-  instrucciones?: string;
+export interface Carrito {
+  items: ItemCarrito[];
+  club_slug: string;
 }
 
-export interface ProductoFormData {
+export interface CarritoResumen {
+  items: ItemCarrito[];
+  subtotal: number;
+  costo_envio: number;
+  total: number;
+  cantidad_total: number;
+}
+
+// ============================================
+// TIPOS PARA FORMULARIOS
+// ============================================
+
+export interface CrearProductoInput {
   nombre: string;
-  descripcion: string;
+  descripcion?: string;
   precio_base: number;
   costo_produccion: number;
-  categoria: CategoriaProducto;
-  imagenes: ProductoImagen[];
-  variantes: VarianteFormData[];
+  categoria?: string;
+  imagenes?: string[];
+  variantes?: Omit<VarianteProducto, "id" | "producto_id">[];
 }
 
-export interface VarianteFormData {
-  id?: string;
-  talla: string;
-  color: string;
-  sku: string;
-  stock: number;
-  activo: boolean;
+export interface ActualizarProductoInput extends Partial<CrearProductoInput> {
+  activo?: boolean;
 }
 
-// ==========================================
-// Auth Types
-// ==========================================
-
-export interface UserSession {
-  id: string;
-  email: string;
-  club_id: string | null;
-  club_slug: string | null;
-  rol: string | null;
+export interface CrearPedidoInput {
+  club_id: string;
+  cliente_email: string;
+  cliente_nombre: string;
+  direccion_envio: DireccionEnvio;
+  items: {
+    producto_id: string;
+    variante_id?: string;
+    cantidad: number;
+  }[];
 }
 
-// ==========================================
-// Stripe Types
-// ==========================================
+export interface ActualizarPedidoInput {
+  estado?: EstadoPedido;
+  tracking_number?: string;
+}
 
-export interface CreateCheckoutSessionInput {
+export interface ActualizarClubInput {
+  nombre?: string;
+  logo_url?: string;
+  color_primario?: string;
+  color_secundario?: string;
+}
+
+// ============================================
+// TIPOS PARA CHECKOUT Y PAGOS
+// ============================================
+
+export interface CheckoutSessionInput {
   pedido_id: string;
   success_url: string;
   cancel_url: string;
 }
 
+export interface CheckoutSessionResponse {
+  session_id: string;
+  url: string;
+}
+
 export interface StripeWebhookEvent {
+  id: string;
   type: string;
   data: {
     object: {
       id: string;
-      metadata?: Record<string, string>;
-      payment_intent?: string;
-      amount_total?: number;
-      customer_email?: string;
+      metadata?: {
+        pedido_id?: string;
+        club_id?: string;
+      };
+      [key: string]: unknown;
     };
   };
 }
 
-// ==========================================
-// Filter Types
-// ==========================================
+// ============================================
+// TIPOS PARA ESTADÍSTICAS
+// ============================================
 
-export interface ProductosFilter {
-  categoria?: CategoriaProducto;
-  activo?: boolean;
-  busqueda?: string;
-  ordenar?: "nombre" | "precio_asc" | "precio_desc" | "reciente";
+export interface EstadisticasClub {
+  ventas_totales: number;
+  pedidos_totales: number;
+  comisiones_pagadas: number;
+  ingresos_netos: number;
+  pedidos_pendientes: number;
+  pedidos_en_produccion: number;
+  pedidos_enviados: number;
+  productos_activos: number;
+  producto_mas_vendido: {
+    producto: Producto;
+    cantidad: number;
+  } | null;
+  ventas_por_mes: {
+    mes: string;
+    total: number;
+  }[];
 }
 
-export interface PedidosFilter {
+export interface EstadisticasPeriodo {
+  inicio: string;
+  fin: string;
+}
+
+// ============================================
+// TIPOS PARA API RESPONSES
+// ============================================
+
+export interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+  success: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+// ============================================
+// TIPOS PARA AUTENTICACIÓN
+// ============================================
+
+export interface Usuario {
+  id: string;
+  email: string;
+  nombre?: string;
+  avatar_url?: string;
+}
+
+export interface SesionUsuario {
+  usuario: Usuario;
+  club: Club | null;
+  rol: string | null;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface RegistroInput {
+  email: string;
+  password: string;
+  nombre?: string;
+}
+
+// ============================================
+// TIPOS PARA FILTROS Y BÚSQUEDA
+// ============================================
+
+export interface FiltrosProducto {
+  categoria?: string;
+  precio_min?: number;
+  precio_max?: number;
+  busqueda?: string;
+  ordenar_por?: "precio_asc" | "precio_desc" | "nombre" | "reciente";
+}
+
+export interface FiltrosPedido {
   estado?: EstadoPedido;
-  desde?: string;
-  hasta?: string;
+  fecha_desde?: string;
+  fecha_hasta?: string;
   busqueda?: string;
 }
+
+// ============================================
+// TIPOS PARA CONFIGURACIÓN
+// ============================================
+
+export interface ConfiguracionTienda {
+  club: Club;
+  categorias: string[];
+  metodos_envio: MetodoEnvio[];
+}
+
+export interface MetodoEnvio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  tiempo_estimado: string;
+}
+
+// ============================================
+// CONSTANTES
+// ============================================
+
+export const ESTADOS_PEDIDO: Record<EstadoPedido, string> = {
+  pendiente: "Pendiente de pago",
+  pagado: "Pagado",
+  en_produccion: "En producción",
+  enviado: "Enviado",
+  entregado: "Entregado",
+  cancelado: "Cancelado",
+};
+
+export const COLORES_ESTADO: Record<EstadoPedido, string> = {
+  pendiente: "bg-yellow-100 text-yellow-800",
+  pagado: "bg-blue-100 text-blue-800",
+  en_produccion: "bg-purple-100 text-purple-800",
+  enviado: "bg-indigo-100 text-indigo-800",
+  entregado: "bg-green-100 text-green-800",
+  cancelado: "bg-red-100 text-red-800",
+};
+
+export const TALLAS_DISPONIBLES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
+export const CATEGORIAS_PRODUCTO = [
+  "Camisetas",
+  "Pantalones",
+  "Sudaderas",
+  "Accesorios",
+  "Equipamiento",
+  "Otros",
+] as const;
+
+export type TallaDisponible = (typeof TALLAS_DISPONIBLES)[number];
+export type CategoriaProducto = (typeof CATEGORIAS_PRODUCTO)[number];
