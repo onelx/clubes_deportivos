@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useClub } from "@/hooks/useClub";
 import { TiendaLayout } from "@/components/TiendaLayout";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import type { Producto, VarianteProducto } from "@/types";
 
@@ -19,7 +19,7 @@ interface ProductoPageProps {
 // Página de detalle de producto
 export default function ProductoPage({ params }: ProductoPageProps) {
   const router = useRouter();
-  const { club, loading: clubLoading } = useClub(params.slug);
+  const { club, isLoading: clubLoading } = useClub(params.slug);
   const addItem = useCart((state) => state.addItem);
   
   const [producto, setProducto] = useState<Producto | null>(null);
