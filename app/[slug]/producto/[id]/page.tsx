@@ -20,7 +20,7 @@ interface ProductoPageProps {
 export default function ProductoPage({ params }: ProductoPageProps) {
   const router = useRouter();
   const { club, isLoading: clubLoading } = useClub(params.slug);
-  const addItem = useCart((state) => state.addItem);
+  const { addItem } = useCart();
   
   const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
