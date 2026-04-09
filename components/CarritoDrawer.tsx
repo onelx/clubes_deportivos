@@ -15,9 +15,7 @@ interface CarritoDrawerProps {
 }
 
 export function CarritoDrawer({ open, onOpenChange, clubSlug }: CarritoDrawerProps) {
-  const { items, removeItem, updateQuantity, getTotal } = useCart();
-
-  const total = getTotal();
+  const { items, removeItem, updateQuantity, total } = useCart();
   const totalFormateado = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
@@ -86,10 +84,10 @@ export function CarritoDrawer({ open, onOpenChange, clubSlug }: CarritoDrawerPro
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-semibold text-gray-900 line-clamp-1">
-                              Producto ID: {item.producto_id.slice(0, 8)}
+                              {item.producto.nombre}
                             </h4>
                             <p className="text-sm text-gray-600">
-                              Variante: {item.variante_id.slice(0, 8)}
+                              {item.variante ? `${item.variante.talla ?? ''} / ${item.variante.color ?? ''}` : ''}
                             </p>
                           </div>
                           <Button

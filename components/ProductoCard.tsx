@@ -18,8 +18,8 @@ export function ProductoCard({
   clubSlug,
   clubPrimaryColor = "#1e40af",
 }: ProductoCardProps) {
-  const imagenes = producto.imagenes as { url: string; alt?: string }[];
-  const primeraImagen = imagenes && imagenes.length > 0 ? imagenes[0].url : "/placeholder-product.jpg";
+  const imagenes = producto.imagenes || [];
+  const primeraImagen = imagenes.length > 0 ? imagenes[0] : "/placeholder-product.jpg";
 
   const variantes = producto.variantes || [];
   const tallasDisponibles = [
@@ -99,8 +99,8 @@ export function ProductoCard({
                 <div
                   key={color}
                   className="h-5 w-5 rounded-full border-2 border-gray-300"
-                  style={{ backgroundColor: color.toLowerCase() }}
-                  title={color}
+                  style={{ backgroundColor: color?.toLowerCase() }}
+                  title={color ?? ''}
                 />
               ))}
               {coloresDisponibles.length > 5 && (

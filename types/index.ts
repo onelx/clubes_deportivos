@@ -97,9 +97,11 @@ export interface ItemPedido {
 }
 
 export interface CartItem {
+  id: string;
   producto: Producto;
   variante: VarianteProducto | null;
   cantidad: number;
+  precio_unitario: number;
 }
 
 export interface Cart {

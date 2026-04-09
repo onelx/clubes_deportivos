@@ -1,5 +1,8 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

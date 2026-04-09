@@ -61,7 +61,7 @@ export default function ProductoPage({ params }: ProductoPageProps) {
   const handleAddToCart = () => {
     if (!producto || !selectedVariante || !club) return;
     
-    addItem(producto, selectedVariante, params.slug);
+    addItem(producto, selectedVariante, cantidad);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

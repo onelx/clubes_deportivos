@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProductoDetalleProps {
   producto: Producto;
@@ -31,7 +31,9 @@ export function ProductoDetalle({
   const [colorSeleccionado, setColorSeleccionado] = useState<string>("");
   const [cantidad, setCantidad] = useState(1);
 
-  const imagenes = producto.imagenes as { url: string; alt?: string }[];
+  const imagenes = (producto.imagenes || []).map((img) =>
+    typeof img === "string" ? { url: img, alt: producto.nombre } : img as { url: string; alt?: string }
+  );
   const variantes = producto.variantes || [];
 
   const tallasDisponibles = [
@@ -161,7 +163,7 @@ export function ProductoDetalle({
                 {tallasDisponibles.map((talla) => (
                   <div key={talla}>
                     <RadioGroupItem
-                      value={talla}
+                      value={talla ?? ''}
                       id={`talla-${talla}`}
                       className="peer sr-only"
                     />
@@ -189,7 +191,7 @@ export function ProductoDetalle({
                 {coloresDisponiblesParaTalla.map((color) => (
                   <div key={color}>
                     <RadioGroupItem
-                      value={color}
+                      value={color ?? ''}
                       id={`color-${color}`}
                       className="peer sr-only"
                     />
@@ -199,7 +201,7 @@ export function ProductoDetalle({
                     >
                       <div
                         className="h-12 w-12 rounded-full border-4 border-gray-300 transition-all peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-blue-600 peer-data-[state=checked]:ring-offset-2"
-                        style={{ backgroundColor: color.toLowerCase() }}
+                        style={{ backgroundColor: color?.toLowerCase() }}
                       />
                       <span className="text-xs font-medium">{color}</span>
                     </Label>

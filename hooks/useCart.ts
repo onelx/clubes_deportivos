@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Producto, VarianteProducto, ItemCarrito } from '@/types';
+import type { Producto, VarianteProducto, CartItem } from '@/types';
 
 interface UseCartReturn {
-  items: ItemCarrito[];
+  items: CartItem[];
   addItem: (producto: Producto, variante: VarianteProducto, cantidad: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, cantidad: number) => void;
@@ -17,7 +17,7 @@ interface UseCartReturn {
 const CART_STORAGE_KEY = 'ideaforge_cart';
 
 export function useCart(): UseCartReturn {
-  const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Cargar carrito desde localStorage al montar
@@ -67,7 +67,7 @@ export function useCart(): UseCartReturn {
     setItems(currentItems => {
       const itemId = `${producto.id}-${variante.id}`;
       const existingItemIndex = currentItems.findIndex(
-        item => item.producto.id === producto.id && item.variante.id === variante.id
+        item => item.producto.id === producto.id && item.variante?.id === variante.id
       );
 
       if (existingItemIndex > -1) {
@@ -80,7 +80,7 @@ export function useCart(): UseCartReturn {
         return newItems;
       } else {
         // Nuevo item
-        const newItem: ItemCarrito = {
+        const newItem: CartItem = {
           id: itemId,
           producto,
           variante,
