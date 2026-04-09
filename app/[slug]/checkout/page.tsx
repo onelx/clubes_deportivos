@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import TiendaLayout from '@/components/TiendaLayout';
+import { TiendaLayout } from '@/components/TiendaLayout';
 import { useCart } from '@/hooks/useCart';
 import { useClub } from '@/hooks/useClub';
 import { Button } from '@/components/ui/button';
