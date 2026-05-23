@@ -25,7 +25,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.push('/dashboard');
+      const isSuperAdmin = email === process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL;
+      router.push(isSuperAdmin ? '/admin' : '/dashboard');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
