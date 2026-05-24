@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import type { UsuarioClub } from '@/types';
 
@@ -23,7 +23,8 @@ export function useAuth(): UseAuthReturn {
   const [usuarioClub, setUsuarioClub] = useState<UsuarioClub | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const supabase = createClientComponentClient();
+  // Create the client once — never on re-render — to avoid re-subscribing auth listeners
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchUsuarioClub = useCallback(async (userId: string) => {
     try {
