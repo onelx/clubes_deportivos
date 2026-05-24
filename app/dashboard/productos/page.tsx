@@ -39,6 +39,8 @@ const emptyProductoForm = {
   nombre: '',
   descripcion: '',
   precio_base: '',
+  precio_comparacion: '',
+  personalizable: false,
   costo_produccion: '',
   categoria: '',
   imagenes: [] as string[],
@@ -130,6 +132,8 @@ export default function ProductosPage() {
       nombre: producto.nombre,
       descripcion: producto.descripcion || '',
       precio_base: String(producto.precio_base),
+      precio_comparacion: producto.precio_comparacion ? String(producto.precio_comparacion) : '',
+      personalizable: producto.personalizable || false,
       costo_produccion: String(producto.costo_produccion),
       categoria: producto.categoria || '',
       imagenes: producto.imagenes || [],
@@ -156,6 +160,8 @@ export default function ProductosPage() {
       nombre: productoForm.nombre,
       descripcion: productoForm.descripcion || undefined,
       precio_base: parseFloat(productoForm.precio_base) || 0,
+      precio_comparacion: productoForm.precio_comparacion ? parseFloat(productoForm.precio_comparacion) : null,
+      personalizable: productoForm.personalizable,
       costo_produccion: parseFloat(productoForm.costo_produccion) || 0,
       categoria: productoForm.categoria || undefined,
       imagenes: productoForm.imagenes,
@@ -393,6 +399,35 @@ export default function ProductosPage() {
                   disabled={submitting}
                 />
               </div>
+            </div>
+
+            {/* Precio comparación */}
+            <div className="space-y-2">
+              <Label htmlFor="p_precio_comparacion">Precio antes / comparación (tachado)</Label>
+              <Input
+                id="p_precio_comparacion"
+                type="number"
+                min="0"
+                step="0.01"
+                value={productoForm.precio_comparacion}
+                onChange={(e) => setProductoForm((f) => ({ ...f, precio_comparacion: e.target.value }))}
+                placeholder="0.00"
+                disabled={submitting}
+              />
+              <p className="text-xs text-gray-400">Dejá vacío si no hay descuento</p>
+            </div>
+
+            {/* Personalizable */}
+            <div className="flex items-center gap-3">
+              <input
+                id="p_personalizable"
+                type="checkbox"
+                checked={productoForm.personalizable}
+                onChange={(e) => setProductoForm((f) => ({ ...f, personalizable: e.target.checked }))}
+                disabled={submitting}
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Label htmlFor="p_personalizable" className="cursor-pointer">Producto personalizable</Label>
             </div>
 
             {/* Categoría */}

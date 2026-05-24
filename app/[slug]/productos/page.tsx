@@ -89,7 +89,7 @@ export default async function ProductosPage({ params, searchParams }: ProductosP
         {productos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 24, paddingBottom: 80 }}>
             {productos.map((p, i) => (
-              <ProductoCard key={p.id} producto={p} clubSlug={params.slug} index={i} />
+              <ProductoCard key={p.id} producto={p} clubSlug={params.slug} index={i} accentColor={accent} cuotasConfig={club.cuotas_config ?? null} />
             ))}
           </div>
         ) : (

@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { club_id, nombre, descripcion, precio_base, costo_produccion, categoria, imagenes, variantes } = body;
+    const { club_id, nombre, descripcion, precio_base, precio_comparacion, personalizable, costo_produccion, categoria, imagenes, variantes } = body;
 
     if (!club_id || !nombre) {
       return NextResponse.json({ error: 'club_id y nombre son requeridos' }, { status: 400 });
@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
         nombre,
         descripcion: descripcion || null,
         precio_base: precio_base || 0,
+        precio_comparacion: precio_comparacion ?? null,
+        personalizable: personalizable ?? false,
         costo_produccion: costo_produccion || 0,
         categoria: categoria || null,
         imagenes: Array.isArray(imagenes) ? imagenes : [],
