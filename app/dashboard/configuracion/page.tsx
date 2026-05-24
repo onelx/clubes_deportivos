@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
 import type { Club, PopupConfig } from '@/types';
 
 const HERO_KEYS = [
@@ -570,13 +570,28 @@ export default function ConfiguracionPage() {
                 </div>
               )}
 
-              <Button onClick={handleSavePopup} disabled={savingPopup} className="w-full">
-                {savingPopup ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</>
-                ) : (
-                  <><Save className="w-4 h-4 mr-2" />Guardar Popup</>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleSavePopup} disabled={savingPopup} className="flex-1">
+                  {savingPopup ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</>
+                  ) : (
+                    <><Save className="w-4 h-4 mr-2" />Guardar Popup</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (club?.slug) {
+                      localStorage.removeItem(`popup_shown_${club.slug}`);
+                      window.open(`/${club.slug}`, '_blank');
+                    }
+                  }}
+                  title="Borra el registro de 'ya visto hoy' y abre la tienda para ver el popup"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Previsualizar
+                </Button>
+              </div>
             </div>
 
             {/* Preview en tiempo real */}

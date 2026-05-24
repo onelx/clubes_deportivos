@@ -63,7 +63,7 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
     <TiendaLayout club={club as Club}>
 
       {/* ─── POPUP PROMOCIONAL ───────────────────── */}
-      {club.popup_config?.activo && (
+      {club.popup_config?.activo && club.popup_config && (
         <PromoPopup
           config={club.popup_config}
           clubNombre={club.nombre}

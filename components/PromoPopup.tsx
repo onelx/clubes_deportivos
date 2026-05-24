@@ -23,8 +23,6 @@ export function PromoPopup({
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!config.activo) return;
-
     // Mostrar una vez por día por club
     const key = `popup_shown_${slug}`;
     const lastShown = localStorage.getItem(key);
@@ -38,7 +36,7 @@ export function PromoPopup({
     }, 600);
 
     return () => clearTimeout(id);
-  }, [config.activo, slug]);
+  }, [slug]);
 
   if (!visible) return null;
 
