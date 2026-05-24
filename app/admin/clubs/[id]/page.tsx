@@ -85,9 +85,14 @@ export default function AdminClubDetailPage() {
   });
 
   const [newUser, setNewUser] = useState({
-    auth_user_id: '',
+    email: '',
     rol: 'admin' as UsuarioClub['rol'],
   });
+  const [newUserResult, setNewUserResult] = useState<{
+    wasCreated: boolean;
+    tempPassword: string | null;
+    email: string;
+  } | null>(null);
 
   // Products state
   const [productos, setProductos] = useState<ProductoConVariantes[]>([]);
@@ -228,6 +233,7 @@ export default function AdminClubDetailPage() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNewUserResult(null);
     setAddingUser(true);
 
     try {
@@ -244,10 +250,13 @@ export default function AdminClubDetailPage() {
         return;
       }
 
-      setUsuarios((prev) => [...prev, { ...data, email: null }]);
-      setNewUser({ auth_user_id: '', rol: 'admin' });
-      setSuccessMsg('Usuario agregado correctamente');
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setUsuarios((prev) => [...prev, { ...data, email: data.email }]);
+      setNewUserResult({
+        wasCreated: data.wasCreated,
+        tempPassword: data.tempPassword,
+        email: data.email,
+      });
+      setNewUser({ email: '', rol: 'admin' });
     } catch (err) {
       console.error(err);
       setError('Error de conexión');
@@ -733,8 +742,8 @@ export default function AdminClubDetailPage() {
             <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-md p-3">
               <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-blue-700">
-                Para agregar un nuevo administrador, primero crea su cuenta en el panel de Supabase
-                Auth, obtén su <strong>User ID (UUID)</strong> y luego vincúlalo aquí.
+                Ingresá el email del administrador. Si ya tiene cuenta la vinculamos automáticamente;
+                si no, le creamos una cuenta nueva y te damos la contraseña provisoria.
               </p>
             </div>
 
@@ -766,6 +775,43 @@ export default function AdminClubDetailPage() {
 
             <Separator />
 
+            {/* Result card after adding */}
+            {newUserResult && (
+              <div className={`rounded-md p-4 border ${newUserResult.wasCreated ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    {newUserResult.wasCreated ? (
+                      <>
+                        <p className="text-sm font-semibold text-amber-800">
+                          ✅ Cuenta creada para {newUserResult.email}
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Contraseña provisoria (copiala ahora):
+                        </p>
+                        <p className="mt-1 font-mono text-base font-bold text-amber-900 bg-amber-100 px-2 py-1 rounded select-all">
+                          {newUserResult.tempPassword}
+                        </p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          Compartí esta contraseña con el administrador para que pueda iniciar sesión.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm font-semibold text-green-800">
+                        ✅ {newUserResult.email} vinculado correctamente al club.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewUserResult(null)}
+                    className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Add user form */}
             <form onSubmit={handleAddUser} className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -773,15 +819,15 @@ export default function AdminClubDetailPage() {
                 Agregar Usuario Admin
               </h3>
               <div className="space-y-2">
-                <Label htmlFor="auth_user_id">User ID (UUID de Supabase Auth)</Label>
+                <Label htmlFor="new_user_email">Email del administrador</Label>
                 <Input
-                  id="auth_user_id"
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  value={newUser.auth_user_id}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, auth_user_id: e.target.value }))}
+                  id="new_user_email"
+                  type="email"
+                  placeholder="admin@elclub.com"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
                   required
                   disabled={addingUser}
-                  className="font-mono text-sm"
                 />
               </div>
               <div className="space-y-2">

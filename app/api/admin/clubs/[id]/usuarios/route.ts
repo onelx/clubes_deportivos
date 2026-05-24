@@ -15,7 +15,6 @@ export async function GET(
   const supabase = getSupabase();
 
   try {
-    // Get usuarios_club records for this club
     const { data: usuariosClub, error: ucError } = await supabase
       .from('usuarios_club')
       .select('*')
@@ -27,18 +26,12 @@ export async function GET(
       return NextResponse.json([]);
     }
 
-    // Get all auth users via admin API
     const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
-
     if (usersError) throw usersError;
 
-    // Merge data
     const merged = usuariosClub.map((uc) => {
       const authUser = users.find((u) => u.id === uc.auth_user_id);
-      return {
-        ...uc,
-        email: authUser?.email || null,
-      };
+      return { ...uc, email: authUser?.email || null };
     });
 
     return NextResponse.json(merged);
@@ -56,10 +49,10 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { auth_user_id, rol } = body;
+    const { email, rol } = body;
 
-    if (!auth_user_id || !rol) {
-      return NextResponse.json({ error: 'auth_user_id y rol son requeridos' }, { status: 400 });
+    if (!email || !rol) {
+      return NextResponse.json({ error: 'email y rol son requeridos' }, { status: 400 });
     }
 
     const validRoles = ['admin', 'editor', 'viewer'];
@@ -67,19 +60,63 @@ export async function POST(
       return NextResponse.json({ error: 'rol inválido' }, { status: 400 });
     }
 
+    // Look up user by email
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) throw listError;
+
+    let authUserId: string;
+    let tempPassword: string | null = null;
+    let wasCreated = false;
+
+    const existingUser = users.find((u) => u.email === email);
+
+    if (existingUser) {
+      authUserId = existingUser.id;
+    } else {
+      // Create the user with a random password
+      const generated = Math.random().toString(36).slice(2, 10) +
+        Math.random().toString(36).slice(2, 6).toUpperCase() + '!';
+      tempPassword = generated;
+
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        password: generated,
+        email_confirm: true,
+      });
+
+      if (createError) throw createError;
+
+      authUserId = newUser.user.id;
+      wasCreated = true;
+    }
+
+    // Check if already linked to this club
+    const { data: existing } = await supabase
+      .from('usuarios_club')
+      .select('id')
+      .eq('club_id', params.id)
+      .eq('auth_user_id', authUserId)
+      .single();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Este usuario ya está vinculado a este club' },
+        { status: 409 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('usuarios_club')
-      .insert({
-        club_id: params.id,
-        auth_user_id,
-        rol,
-      })
+      .insert({ club_id: params.id, auth_user_id: authUserId, rol })
       .select()
       .single();
 
     if (error) throw error;
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(
+      { ...data, email, wasCreated, tempPassword },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error adding usuario:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
