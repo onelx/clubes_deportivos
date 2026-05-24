@@ -16,7 +16,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, descripcion, precio_base, costo_produccion, categoria, activo } = body;
+    const { nombre, descripcion, precio_base, costo_produccion, categoria, activo, imagenes, variantes } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
@@ -25,6 +25,7 @@ export async function PATCH(
     if (costo_produccion !== undefined) updateData.costo_produccion = costo_produccion;
     if (categoria !== undefined) updateData.categoria = categoria;
     if (activo !== undefined) updateData.activo = activo;
+    if (imagenes !== undefined) updateData.imagenes = Array.isArray(imagenes) ? imagenes : [];
 
     const { data, error } = await supabase
       .from('productos')
@@ -35,7 +36,48 @@ export async function PATCH(
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    // Replace variantes if provided
+    if (Array.isArray(variantes)) {
+      // Delete existing
+      const { error: deleteError } = await supabase
+        .from('variantes_producto')
+        .delete()
+        .eq('producto_id', params.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new ones (skip empty rows)
+      const validVariantes = variantes.filter(
+        (v: { talla?: string; color?: string }) => v.talla || v.color
+      );
+
+      if (validVariantes.length > 0) {
+        const variantesData = validVariantes.map(
+          (v: { talla?: string; color?: string; sku?: string }) => ({
+            producto_id: params.id,
+            talla: v.talla || null,
+            color: v.color || null,
+            sku: v.sku || null,
+            activo: true,
+          })
+        );
+
+        const { error: insertError } = await supabase
+          .from('variantes_producto')
+          .insert(variantesData);
+
+        if (insertError) throw insertError;
+      }
+    }
+
+    // Return full product with variantes
+    const { data: productoCompleto } = await supabase
+      .from('productos')
+      .select('*, variantes:variantes_producto(*)')
+      .eq('id', params.id)
+      .single();
+
+    return NextResponse.json(productoCompleto || data);
   } catch (error) {
     console.error('Error updating producto:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
