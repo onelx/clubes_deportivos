@@ -49,7 +49,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { email, rol } = body;
+    const { email, rol, password } = body;
 
     if (!email || !rol) {
       return NextResponse.json({ error: 'email y rol son requeridos' }, { status: 400 });
@@ -73,9 +73,11 @@ export async function POST(
     if (existingUser) {
       authUserId = existingUser.id;
     } else {
-      // Create the user with a random password
-      const generated = Math.random().toString(36).slice(2, 10) +
-        Math.random().toString(36).slice(2, 6).toUpperCase() + '!';
+      // Create the user — use provided password or generate one
+      const generated = password && password.length >= 6
+        ? password
+        : Math.random().toString(36).slice(2, 10) +
+          Math.random().toString(36).slice(2, 6).toUpperCase() + '!';
       tempPassword = generated;
 
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -119,6 +121,38 @@ export async function POST(
     );
   } catch (error) {
     console.error('Error adding usuario:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  { params }: { params: { id: string } }
+) {
+  const supabase = getSupabase();
+
+  try {
+    const body = await request.json();
+    const { auth_user_id, newPassword } = body;
+
+    if (!auth_user_id || !newPassword) {
+      return NextResponse.json({ error: 'auth_user_id y newPassword son requeridos' }, { status: 400 });
+    }
+
+    if (newPassword.length < 6) {
+      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    }
+
+    const { error } = await supabase.auth.admin.updateUserById(auth_user_id, {
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error changing password:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

@@ -31,6 +31,9 @@ import {
   X,
   Package,
   Image as ImageIcon,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
 import type { Club, UsuarioClub, Producto, VarianteProducto } from '@/types';
 
@@ -86,13 +89,63 @@ export default function AdminClubDetailPage() {
 
   const [newUser, setNewUser] = useState({
     email: '',
+    password: '',
     rol: 'admin' as UsuarioClub['rol'],
   });
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [newUserResult, setNewUserResult] = useState<{
     wasCreated: boolean;
     tempPassword: string | null;
     email: string;
   } | null>(null);
+
+  // Password change per existing user
+  const [passwordChange, setPasswordChange] = useState<
+    Record<string, { open: boolean; value: string; show: boolean; saving: boolean }>
+  >({});
+
+  const togglePasswordChange = (authUserId: string) => {
+    setPasswordChange((prev) => ({
+      ...prev,
+      [authUserId]: prev[authUserId]?.open
+        ? { open: false, value: '', show: false, saving: false }
+        : { open: true, value: '', show: false, saving: false },
+    }));
+  };
+
+  const handleChangePassword = async (authUserId: string) => {
+    const state = passwordChange[authUserId];
+    if (!state?.value || state.value.length < 6) return;
+    setPasswordChange((prev) => ({
+      ...prev,
+      [authUserId]: { ...prev[authUserId], saving: true },
+    }));
+    try {
+      const res = await fetch(`/api/admin/clubs/${clubId}/usuarios`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_user_id: authUserId, newPassword: state.value }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Error al cambiar contraseña');
+        return;
+      }
+      setPasswordChange((prev) => ({
+        ...prev,
+        [authUserId]: { open: false, value: '', show: false, saving: false },
+      }));
+      setSuccessMsg('Contraseña actualizada correctamente');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch {
+      setError('Error de conexión');
+    } finally {
+      setPasswordChange((prev) => ({
+        ...prev,
+        [authUserId]: { ...prev[authUserId], saving: false },
+      }));
+    }
+  };
 
   // Products state
   const [productos, setProductos] = useState<ProductoConVariantes[]>([]);
@@ -240,7 +293,11 @@ export default function AdminClubDetailPage() {
       const res = await fetch(`/api/admin/clubs/${clubId}/usuarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify({
+          email: newUser.email,
+          rol: newUser.rol,
+          password: newUser.password || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -256,7 +313,8 @@ export default function AdminClubDetailPage() {
         tempPassword: data.tempPassword,
         email: data.email,
       });
-      setNewUser({ email: '', rol: 'admin' });
+      setNewUser({ email: '', password: '', rol: 'admin' });
+      setShowNewPassword(false);
     } catch (err) {
       console.error(err);
       setError('Error de conexión');
@@ -754,22 +812,88 @@ export default function AdminClubDetailPage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {usuarios.map((u) => (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {u.email || 'Email no disponible'}
-                      </p>
-                      <p className="text-xs text-gray-500 font-mono">{u.auth_user_id}</p>
+                {usuarios.map((u) => {
+                  const pc = passwordChange[u.auth_user_id];
+                  return (
+                    <div key={u.id} className="bg-gray-50 rounded-lg overflow-hidden">
+                      <div className="flex items-center justify-between p-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {u.email || 'Email no disponible'}
+                          </p>
+                          <p className="text-xs text-gray-400 font-mono truncate max-w-[200px]">{u.auth_user_id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={rolColors[u.rol] || 'bg-gray-100 text-gray-800'}>
+                            {u.rol}
+                          </Badge>
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordChange(u.auth_user_id)}
+                            className="p-1.5 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="Cambiar contraseña"
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inline password change */}
+                      {pc?.open && (
+                        <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
+                          <p className="text-xs font-medium text-gray-600">Nueva contraseña para {u.email}</p>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                type={pc.show ? 'text' : 'password'}
+                                placeholder="Mínimo 6 caracteres"
+                                value={pc.value}
+                                onChange={(e) =>
+                                  setPasswordChange((prev) => ({
+                                    ...prev,
+                                    [u.auth_user_id]: { ...prev[u.auth_user_id], value: e.target.value },
+                                  }))
+                                }
+                                disabled={pc.saving}
+                                className="pr-9 text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPasswordChange((prev) => ({
+                                    ...prev,
+                                    [u.auth_user_id]: { ...prev[u.auth_user_id], show: !prev[u.auth_user_id].show },
+                                  }))
+                                }
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                tabIndex={-1}
+                              >
+                                {pc.show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={pc.saving || !pc.value || pc.value.length < 6}
+                              onClick={() => handleChangePassword(u.auth_user_id)}
+                            >
+                              {pc.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              disabled={pc.saving}
+                              onClick={() => togglePasswordChange(u.auth_user_id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Badge className={rolColors[u.rol] || 'bg-gray-100 text-gray-800'}>
-                      {u.rol}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -829,6 +953,31 @@ export default function AdminClubDetailPage() {
                   required
                   disabled={addingUser}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new_user_password">
+                  Contraseña{' '}
+                  <span className="text-gray-400 font-normal">(opcional — si no la ponés, se genera automáticamente)</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="new_user_password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Mínimo 6 caracteres"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
+                    disabled={addingUser}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rol">Rol</Label>
