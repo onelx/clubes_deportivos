@@ -29,12 +29,28 @@ export async function PATCH(
     if (activo !== undefined) updateData.activo = activo;
     if (imagenes !== undefined) updateData.imagenes = Array.isArray(imagenes) ? imagenes : [];
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('productos')
       .update(updateData)
       .eq('id', params.id)
       .select()
       .single();
+
+    // Si falla por columnas que aún no existen (migración pendiente),
+    // reintentamos sin esas columnas para que el resto se guarde igual.
+    if (error && (error.message?.includes('precio_comparacion') || error.message?.includes('personalizable'))) {
+      const fallbackData = { ...updateData };
+      delete fallbackData.precio_comparacion;
+      delete fallbackData.personalizable;
+      const fallback = await supabase
+        .from('productos')
+        .update(fallbackData)
+        .eq('id', params.id)
+        .select()
+        .single();
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) throw error;
 

@@ -44,22 +44,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'club_id y nombre son requeridos' }, { status: 400 });
     }
 
-    const { data: producto, error: productoError } = await supabase
+    const insertPayload: Record<string, unknown> = {
+      club_id,
+      nombre,
+      descripcion: descripcion || null,
+      precio_base: precio_base || 0,
+      precio_comparacion: precio_comparacion ?? null,
+      personalizable: personalizable ?? false,
+      costo_produccion: costo_produccion || 0,
+      categoria: categoria || null,
+      imagenes: Array.isArray(imagenes) ? imagenes : [],
+      activo: true,
+    };
+
+    let { data: producto, error: productoError } = await supabase
       .from('productos')
-      .insert({
-        club_id,
-        nombre,
-        descripcion: descripcion || null,
-        precio_base: precio_base || 0,
-        precio_comparacion: precio_comparacion ?? null,
-        personalizable: personalizable ?? false,
-        costo_produccion: costo_produccion || 0,
-        categoria: categoria || null,
-        imagenes: Array.isArray(imagenes) ? imagenes : [],
-        activo: true,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    // Reintento sin columnas de migración pendiente si fallan
+    if (productoError && (productoError.message?.includes('precio_comparacion') || productoError.message?.includes('personalizable'))) {
+      const fallbackPayload = { ...insertPayload };
+      delete fallbackPayload.precio_comparacion;
+      delete fallbackPayload.personalizable;
+      const fallback = await supabase
+        .from('productos')
+        .insert(fallbackPayload)
+        .select()
+        .single();
+      producto = fallback.data;
+      productoError = fallback.error;
+    }
 
     if (productoError) throw productoError;
 
