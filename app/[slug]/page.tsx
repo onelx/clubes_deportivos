@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TiendaLayout } from "@/components/TiendaLayout";
 import { ProductoCard } from "@/components/ProductoCard";
 import { HeroCarousel } from "@/components/HeroCarousel";
+import { PromoPopup } from "@/components/PromoPopup";
 import type { Club, Producto, VarianteProducto } from "@/types";
 
 interface TiendaPageProps {
@@ -60,6 +61,18 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
 
   return (
     <TiendaLayout club={club as Club}>
+
+      {/* ─── POPUP PROMOCIONAL ───────────────────── */}
+      {club.popup_config?.activo && (
+        <PromoPopup
+          config={club.popup_config}
+          clubNombre={club.nombre}
+          logoUrl={club.logo_url}
+          colorPrimario={club.color_primario}
+          colorSecundario={club.color_secundario}
+          slug={slug}
+        />
+      )}
 
       {/* ─── HERO ────────────────────────────────── */}
       <section style={{ padding: "32px 0 24px" }}>

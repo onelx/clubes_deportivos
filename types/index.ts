@@ -1,3 +1,16 @@
+export interface PopupConfig {
+  activo: boolean;
+  descuento_texto: string;
+  descuento_subtexto: string;
+  descripcion: string;
+  codigo_cupon: string;
+  texto_legal: string;
+  label_btn_1: string;
+  url_btn_1: string;
+  label_btn_2: string;
+  url_btn_2: string;
+}
+
 export interface Club {
   id: string;
   slug: string;
@@ -13,6 +26,7 @@ export interface Club {
   hero_imagen_2_url: string | null;
   hero_imagen_3_url: string | null;
   hero_imagen_4_url: string | null;
+  popup_config: PopupConfig | null;
 }
 
 export interface UsuarioClub {

@@ -16,7 +16,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, color_primario, color_secundario, logo_url, hero_imagen_1_url, hero_imagen_2_url, hero_imagen_3_url, hero_imagen_4_url } = body;
+    const { nombre, color_primario, color_secundario, logo_url, hero_imagen_1_url, hero_imagen_2_url, hero_imagen_3_url, hero_imagen_4_url, popup_config } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
@@ -27,6 +27,7 @@ export async function PATCH(
     if (hero_imagen_2_url !== undefined) updateData.hero_imagen_2_url = hero_imagen_2_url;
     if (hero_imagen_3_url !== undefined) updateData.hero_imagen_3_url = hero_imagen_3_url;
     if (hero_imagen_4_url !== undefined) updateData.hero_imagen_4_url = hero_imagen_4_url;
+    if (popup_config !== undefined) updateData.popup_config = popup_config;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 });

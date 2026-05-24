@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, X, Upload } from 'lucide-react';
-import type { Club } from '@/types';
+import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight } from 'lucide-react';
+import type { Club, PopupConfig } from '@/types';
 
 const HERO_KEYS = [
   'hero_imagen_1_url',
@@ -48,6 +48,21 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savingPopup, setSavingPopup] = useState(false);
+  const [popupSuccess, setPopupSuccess] = useState(false);
+  const [popup, setPopup] = useState<PopupConfig>({
+    activo: false,
+    descuento_texto: '+10%',
+    descuento_subtexto: 'off',
+    descripcion: 'en tu compra por ser socio/a, utilizando el cupón:',
+    codigo_cupon: '',
+    texto_legal: '',
+    label_btn_1: 'USAR MI DESCUENTO',
+    url_btn_1: '',
+    label_btn_2: '¡HACETE SOCIO/A!',
+    url_btn_2: '',
+  });
+
   const [uploadingHero, setUploadingHero] = useState<Record<HeroKey, boolean>>({
     hero_imagen_1_url: false,
     hero_imagen_2_url: false,
@@ -92,6 +107,9 @@ export default function ConfiguracionPage() {
         hero_imagen_3_url: data.hero_imagen_3_url ?? null,
         hero_imagen_4_url: data.hero_imagen_4_url ?? null,
       });
+      if (data.popup_config) {
+        setPopup(data.popup_config as PopupConfig);
+      }
     }
     setLoading(false);
   }, [dashboardClubId, supabase]);
@@ -139,6 +157,22 @@ export default function ConfiguracionPage() {
     });
     setForm((prev) => ({ ...prev, [key]: null }));
   }, [club]);
+
+  const handleSavePopup = async () => {
+    if (!club) return;
+    setSavingPopup(true);
+    try {
+      await fetch(`/api/dashboard/club/${club.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ popup_config: popup }),
+      });
+      setPopupSuccess(true);
+      setTimeout(() => setPopupSuccess(false), 3000);
+    } finally {
+      setSavingPopup(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -402,6 +436,195 @@ export default function ConfiguracionPage() {
                 </div>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Popup Promocional */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Popup Promocional</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Se muestra al abrir la tienda, una vez por día por visitante.
+              </p>
+            </div>
+            {/* Toggle activo/inactivo */}
+            <button
+              type="button"
+              onClick={() => setPopup((p) => ({ ...p, activo: !p.activo }))}
+              className="flex items-center gap-2 text-sm font-medium"
+            >
+              {popup.activo ? (
+                <>
+                  <ToggleRight className="w-8 h-8 text-green-500" />
+                  <span className="text-green-600">Activo</span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-8 h-8 text-gray-400" />
+                  <span className="text-gray-500">Inactivo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Formulario */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Texto descuento</Label>
+                  <Input
+                    value={popup.descuento_texto}
+                    onChange={(e) => setPopup((p) => ({ ...p, descuento_texto: e.target.value }))}
+                    placeholder="+10%"
+                  />
+                  <p className="text-xs text-gray-400">Ej: +10%, -$500, 2x1</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtexto</Label>
+                  <Input
+                    value={popup.descuento_subtexto}
+                    onChange={(e) => setPopup((p) => ({ ...p, descuento_subtexto: e.target.value }))}
+                    placeholder="off"
+                  />
+                  <p className="text-xs text-gray-400">Ej: off, descuento</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descripción</Label>
+                <Input
+                  value={popup.descripcion}
+                  onChange={(e) => setPopup((p) => ({ ...p, descripcion: e.target.value }))}
+                  placeholder="en tu compra por ser socio/a, utilizando el cupón:"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Código cupón</Label>
+                <Input
+                  value={popup.codigo_cupon}
+                  onChange={(e) => setPopup((p) => ({ ...p, codigo_cupon: e.target.value.toUpperCase() }))}
+                  placeholder="BOCAFAN"
+                  className="font-mono font-bold text-lg"
+                />
+                <p className="text-xs text-gray-400">Dejá vacío si no usás cupón</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Texto legal (letra chica)</Label>
+                <textarea
+                  value={popup.texto_legal}
+                  onChange={(e) => setPopup((p) => ({ ...p, texto_legal: e.target.value }))}
+                  placeholder="* Cupón aplicable en todos los productos..."
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Botón 1 — texto</Label>
+                  <Input
+                    value={popup.label_btn_1}
+                    onChange={(e) => setPopup((p) => ({ ...p, label_btn_1: e.target.value }))}
+                    placeholder="USAR MI DESCUENTO"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Botón 1 — URL</Label>
+                  <Input
+                    value={popup.url_btn_1}
+                    onChange={(e) => setPopup((p) => ({ ...p, url_btn_1: e.target.value }))}
+                    placeholder="/productos"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Botón 2 — texto</Label>
+                  <Input
+                    value={popup.label_btn_2}
+                    onChange={(e) => setPopup((p) => ({ ...p, label_btn_2: e.target.value }))}
+                    placeholder="¡HACETE SOCIO/A!"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Botón 2 — URL</Label>
+                  <Input
+                    value={popup.url_btn_2}
+                    onChange={(e) => setPopup((p) => ({ ...p, url_btn_2: e.target.value }))}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              {popupSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <p className="text-sm text-green-700">Popup guardado correctamente.</p>
+                </div>
+              )}
+
+              <Button onClick={handleSavePopup} disabled={savingPopup} className="w-full">
+                {savingPopup ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</>
+                ) : (
+                  <><Save className="w-4 h-4 mr-2" />Guardar Popup</>
+                )}
+              </Button>
+            </div>
+
+            {/* Preview en tiempo real */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-700">Vista previa</p>
+              <div
+                className="rounded-2xl p-8 text-center relative"
+                style={{ background: form.color_primario, minHeight: 320 }}
+              >
+                {club?.logo_url && (
+                  <img src={club.logo_url} alt="" className="h-12 w-auto mx-auto mb-4 object-contain" />
+                )}
+                <div style={{ color: form.color_secundario, fontWeight: 900, lineHeight: 1, marginBottom: 8 }}>
+                  <span style={{ fontSize: 56 }}>{popup.descuento_texto || '+10%'}</span>
+                  <span style={{ fontSize: 32, marginLeft: 4 }}>{popup.descuento_subtexto || 'off'}</span>
+                </div>
+                <p style={{ color: form.color_secundario, fontSize: 14, marginBottom: 12, opacity: 0.9 }}>
+                  {popup.descripcion || 'Descripción del descuento'}
+                </p>
+                {popup.codigo_cupon && (
+                  <p style={{ color: form.color_secundario, fontWeight: 900, fontSize: 32, letterSpacing: '0.05em', marginBottom: 12 }}>
+                    {popup.codigo_cupon}
+                  </p>
+                )}
+                {popup.texto_legal && (
+                  <p style={{ color: form.color_secundario, fontSize: 10, opacity: 0.6, marginBottom: 16, fontStyle: 'italic' }}>
+                    {popup.texto_legal}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-4">
+                  {popup.label_btn_1 && (
+                    <div className="flex-1 py-3 rounded-lg text-xs font-bold uppercase text-center"
+                      style={{ background: form.color_secundario, color: form.color_primario }}>
+                      {popup.label_btn_1}
+                    </div>
+                  )}
+                  {popup.label_btn_2 && (
+                    <div className="flex-1 py-3 rounded-lg text-xs font-bold uppercase text-center"
+                      style={{ background: form.color_secundario, color: form.color_primario }}>
+                      {popup.label_btn_2}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 text-center">
+                Los colores se toman de los colores del club configurados arriba.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
