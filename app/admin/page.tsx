@@ -16,6 +16,7 @@ import {
   Plus,
   ExternalLink,
   Settings,
+  LayoutDashboard,
 } from 'lucide-react';
 import type { Club } from '@/types';
 
@@ -252,12 +253,20 @@ export default function AdminPage() {
                           {club.comision_porcentaje}%
                         </td>
                         <td className="py-3 px-2 text-right">
-                          <Link href={`/admin/clubs/${club.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Settings className="w-3.5 h-3.5 mr-1" />
-                              Gestionar
-                            </Button>
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link href={`/dashboard?as=${club.id}`}>
+                              <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                                <LayoutDashboard className="w-3.5 h-3.5 mr-1" />
+                                Ver panel
+                              </Button>
+                            </Link>
+                            <Link href={`/admin/clubs/${club.id}`}>
+                              <Button variant="outline" size="sm">
+                                <Settings className="w-3.5 h-3.5 mr-1" />
+                                Gestionar
+                              </Button>
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

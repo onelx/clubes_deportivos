@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardClub } from '@/hooks/useDashboardClub';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,8 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { user, usuarioClub, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const { club_id: dashboardClubId } = useDashboardClub();
   const router = useRouter();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClient(), []);
@@ -49,11 +51,11 @@ export default function DashboardPage() {
   }, [user, isLoading, router]);
 
   useEffect(() => {
-    if (!usuarioClub?.club_id) return;
+    if (!dashboardClubId) return;
 
     const fetchData = async () => {
       setLoadingData(true);
-      const clubId = usuarioClub.club_id;
+      const clubId = dashboardClubId;
 
       try {
         const [pedidosRes, productosRes] = await Promise.all([
@@ -91,7 +93,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [usuarioClub, supabase]);
+  }, [dashboardClubId, supabase]);
 
   if (isLoading) {
     return (

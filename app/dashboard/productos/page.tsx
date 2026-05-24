@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardClub } from '@/hooks/useDashboardClub';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +45,8 @@ const emptyProductoForm = {
 };
 
 export default function ProductosPage() {
-  const { usuarioClub } = useAuth();
+  useAuth(); // mantiene la sesión activa
+  const { club_id: dashboardClubId } = useDashboardClub();
   const supabase = createClient();
 
   const [productos, setProductos] = useState<ProductoConVariantes[]>([]);
@@ -59,19 +61,19 @@ export default function ProductosPage() {
   const [variantes, setVariantes] = useState<VarianteForm[]>([]);
 
   const fetchProductos = useCallback(async () => {
-    if (!usuarioClub?.club_id) return;
+    if (!dashboardClubId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('productos')
       .select('*, variantes:variantes_producto(*)')
-      .eq('club_id', usuarioClub.club_id)
+      .eq('club_id', dashboardClubId)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       setProductos(data as ProductoConVariantes[]);
     }
     setLoading(false);
-  }, [usuarioClub, supabase]);
+  }, [dashboardClubId, supabase]);
 
   useEffect(() => {
     fetchProductos();
@@ -145,12 +147,12 @@ export default function ProductosPage() {
   // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuarioClub?.club_id) return;
+    if (!dashboardClubId) return;
     setSubmitting(true);
     setError(null);
 
     const body = {
-      club_id: usuarioClub.club_id,
+      club_id: dashboardClubId,
       nombre: productoForm.nombre,
       descripcion: productoForm.descripcion || undefined,
       precio_base: parseFloat(productoForm.precio_base) || 0,

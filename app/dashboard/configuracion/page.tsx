@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardClub } from '@/hooks/useDashboardClub';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,7 +39,8 @@ function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<
 }
 
 export default function ConfiguracionPage() {
-  const { usuarioClub } = useAuth();
+  useAuth(); // mantiene la sesión activa
+  const { club_id: dashboardClubId } = useDashboardClub();
   const supabase = useMemo(() => createClient(), []);
 
   const [club, setClub] = useState<Club | null>(null);
@@ -71,12 +73,12 @@ export default function ConfiguracionPage() {
   });
 
   const fetchClub = useCallback(async () => {
-    if (!usuarioClub?.club_id) return;
+    if (!dashboardClubId) return;
     setLoading(true);
     const { data } = await supabase
       .from('clubs')
       .select('*')
-      .eq('id', usuarioClub.club_id)
+      .eq('id', dashboardClubId)
       .single();
 
     if (data) {
@@ -92,7 +94,7 @@ export default function ConfiguracionPage() {
       });
     }
     setLoading(false);
-  }, [usuarioClub, supabase]);
+  }, [dashboardClubId, supabase]);
 
   useEffect(() => {
     fetchClub();

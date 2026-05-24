@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardClub } from '@/hooks/useDashboardClub';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +27,8 @@ const estadoConfig: Record<EstadoPedido, { label: string; className: string }> =
 const estadoOptions: EstadoPedido[] = ['pendiente', 'pagado', 'produccion', 'enviado', 'entregado', 'cancelado'];
 
 export default function PedidosPage() {
-  const { usuarioClub } = useAuth();
+  useAuth(); // mantiene la sesión activa
+  const { club_id: dashboardClubId } = useDashboardClub();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClient(), []);
 
@@ -38,19 +40,19 @@ export default function PedidosPage() {
   const [nuevoEstado, setNuevoEstado] = useState<EstadoPedido>('pendiente');
 
   const fetchPedidos = useCallback(async () => {
-    if (!usuarioClub?.club_id) return;
+    if (!dashboardClubId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('pedidos')
       .select('*')
-      .eq('club_id', usuarioClub.club_id)
+      .eq('club_id', dashboardClubId)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       setPedidos(data as Pedido[]);
     }
     setLoading(false);
-  }, [usuarioClub, supabase]);
+  }, [dashboardClubId, supabase]);
 
   useEffect(() => {
     fetchPedidos();
