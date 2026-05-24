@@ -425,15 +425,44 @@ export function ProductoDetalleInteractivo({
               </h1>
 
               {/* Precio */}
-              <p
-                style={{
-                  fontFamily: F_DISPLAY, fontWeight: 700,
-                  fontSize: 28, color: 'var(--accent, #0a0a0a)',
-                  marginBottom: 24,
-                }}
-              >
-                {formatPrice(producto.precio_base)}
-              </p>
+              <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Precio comparación tachado */}
+                {producto.precio_comparacion != null && producto.precio_comparacion > producto.precio_base && (
+                  <span
+                    style={{
+                      fontFamily: F_MONO, fontSize: 15,
+                      color: '#9ca3af', textDecoration: 'line-through',
+                    }}
+                  >
+                    {formatPrice(producto.precio_comparacion)}
+                  </span>
+                )}
+
+                {/* Precio base + IVA */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      fontFamily: F_DISPLAY, fontWeight: 700,
+                      fontSize: 28, color: 'var(--accent, #0a0a0a)',
+                    }}
+                  >
+                    {formatPrice(producto.precio_base)}
+                  </span>
+                  <span style={{ fontFamily: F_MONO, fontSize: 11, color: '#6b7280' }}>
+                    (IVA incluido)
+                  </span>
+                </div>
+
+                {/* Cuotas */}
+                {club.cuotas_config && (
+                  <span style={{ fontFamily: F_MONO, fontSize: 12, color: '#374151' }}>
+                    {club.cuotas_config.cantidad} cuotas
+                    {club.cuotas_config.sin_interes ? ' S/I' : ''} de{' '}
+                    {formatPrice(Math.round(producto.precio_base / club.cuotas_config.cantidad))} con{' '}
+                    {club.cuotas_config.banco}
+                  </span>
+                )}
+              </div>
 
               {/* Descripción */}
               {producto.descripcion && (
