@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TiendaLayout } from "@/components/TiendaLayout";
 import { ProductoCard } from "@/components/ProductoCard";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Club, Producto, VarianteProducto } from "@/types";
 
 interface TiendaPageProps {
@@ -95,30 +96,9 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
               </div>
             </div>
 
-            {/* Hero grid 2×2 */}
+            {/* Hero carousel */}
             <div className="hidden md:block" style={{ position: "relative", background: "#171717", minHeight: 400 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", height: "100%", position: "absolute", inset: 0, gap: 2 }}>
-                {heroImagenes.map((url, i) =>
-                  url ? (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`${club.nombre} imagen ${i + 1}`}
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    />
-                  ) : (
-                    <div key={i} style={{ background: "#1a1a1a", display: "grid", placeItems: "center", color: "rgba(255,255,255,.12)", fontFamily: F_MONO, fontSize: "9px", letterSpacing: ".18em", textTransform: "uppercase" }}>
-                      <span>{i + 1}</span>
-                    </div>
-                  )
-                )}
-              </div>
-              {/* Dots decorativos */}
-              <div style={{ position: "absolute", right: 32, bottom: 24, display: "flex", gap: 8, zIndex: 3 }}>
-                {[true, false, false, false].map((on, i) => (
-                  <span key={i} style={{ width: 24, height: 2, background: on ? accent : "rgba(255,255,255,.2)", display: "block" }} />
-                ))}
-              </div>
+              <HeroCarousel imagenes={heroImagenes} nombre={club.nombre} accent={accent} fMono={F_MONO} />
             </div>
           </div>
         </div>
