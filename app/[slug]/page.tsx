@@ -189,7 +189,7 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
           {productos.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 24 }}>
               {productos.slice(0, 4).map((p, i) => (
-                <ProductoCard key={p.id} producto={p} clubSlug={slug} index={i} />
+                <ProductoCard key={p.id} producto={p} clubSlug={slug} index={i} accentColor={accent} cuotasConfig={club.cuotas_config ?? null} />
               ))}
             </div>
           ) : (

@@ -16,12 +16,14 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, descripcion, precio_base, costo_produccion, categoria, activo, imagenes, variantes } = body;
+    const { nombre, descripcion, precio_base, precio_comparacion, personalizable, costo_produccion, categoria, activo, imagenes, variantes } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
     if (descripcion !== undefined) updateData.descripcion = descripcion;
     if (precio_base !== undefined) updateData.precio_base = precio_base;
+    if (precio_comparacion !== undefined) updateData.precio_comparacion = precio_comparacion;
+    if (personalizable !== undefined) updateData.personalizable = personalizable;
     if (costo_produccion !== undefined) updateData.costo_produccion = costo_produccion;
     if (categoria !== undefined) updateData.categoria = categoria;
     if (activo !== undefined) updateData.activo = activo;

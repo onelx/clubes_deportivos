@@ -11,6 +11,12 @@ export interface PopupConfig {
   url_btn_2: string;
 }
 
+export interface CuotasConfig {
+  cantidad: number;
+  banco: string;
+  sin_interes: boolean;
+}
+
 export interface Club {
   id: string;
   slug: string;
@@ -27,6 +33,7 @@ export interface Club {
   hero_imagen_3_url: string | null;
   hero_imagen_4_url: string | null;
   popup_config: PopupConfig | null;
+  cuotas_config: CuotasConfig | null;
 }
 
 export interface UsuarioClub {
@@ -43,6 +50,8 @@ export interface Producto {
   nombre: string;
   descripcion: string | null;
   precio_base: number;
+  precio_comparacion: number | null;
+  personalizable: boolean;
   costo_produccion: number;
   categoria: string | null;
   imagenes: string[];
@@ -158,6 +167,8 @@ export interface CreateProductoInput {
   nombre: string;
   descripcion?: string;
   precio_base: number;
+  precio_comparacion?: number | null;
+  personalizable?: boolean;
   costo_produccion: number;
   categoria?: string;
   imagenes?: string[];
@@ -204,6 +215,7 @@ export interface UpdateClubInput {
   hero_imagen_2_url?: string | null;
   hero_imagen_3_url?: string | null;
   hero_imagen_4_url?: string | null;
+  cuotas_config?: CuotasConfig | null;
 }
 
 export interface ApiResponse<T> {

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
-import type { Club, PopupConfig } from '@/types';
+import type { Club, PopupConfig, CuotasConfig } from '@/types';
 
 const HERO_KEYS = [
   'hero_imagen_1_url',
@@ -50,6 +50,14 @@ export default function ConfiguracionPage() {
   const [error, setError] = useState<string | null>(null);
   const [savingPopup, setSavingPopup] = useState(false);
   const [popupSuccess, setPopupSuccess] = useState(false);
+  const [savingCuotas, setSavingCuotas] = useState(false);
+  const [cuotasSuccess, setCuotasSuccess] = useState(false);
+  const [cuotasActivo, setCuotasActivo] = useState(false);
+  const [cuotas, setCuotas] = useState<CuotasConfig>({
+    cantidad: 3,
+    banco: '',
+    sin_interes: true,
+  });
   const [popup, setPopup] = useState<PopupConfig>({
     activo: false,
     descuento_texto: '+10%',
@@ -110,6 +118,13 @@ export default function ConfiguracionPage() {
       if (data.popup_config) {
         setPopup(data.popup_config as PopupConfig);
       }
+      if (data.cuotas_config) {
+        const cc = data.cuotas_config as CuotasConfig;
+        setCuotasActivo(true);
+        setCuotas(cc);
+      } else {
+        setCuotasActivo(false);
+      }
     }
     setLoading(false);
   }, [dashboardClubId, supabase]);
@@ -157,6 +172,22 @@ export default function ConfiguracionPage() {
     });
     setForm((prev) => ({ ...prev, [key]: null }));
   }, [club]);
+
+  const handleSaveCuotas = async () => {
+    if (!club) return;
+    setSavingCuotas(true);
+    try {
+      await fetch(`/api/dashboard/club/${club.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cuotas_config: cuotasActivo ? cuotas : null }),
+      });
+      setCuotasSuccess(true);
+      setTimeout(() => setCuotasSuccess(false), 3000);
+    } finally {
+      setSavingCuotas(false);
+    }
+  };
 
   const handleSavePopup = async () => {
     if (!club) return;
@@ -436,6 +467,98 @@ export default function ConfiguracionPage() {
                 </div>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cuotas y Financiación */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Cuotas y Financiación</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Muestra opciones de cuotas en las fichas de producto de tu tienda.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCuotasActivo((v) => !v)}
+              className="flex items-center gap-2 text-sm font-medium"
+            >
+              {cuotasActivo ? (
+                <>
+                  <ToggleRight className="w-8 h-8 text-green-500" />
+                  <span className="text-green-600">Activo</span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-8 h-8 text-gray-400" />
+                  <span className="text-gray-500">Inactivo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cuotas_cantidad">Cantidad de cuotas</Label>
+                <Input
+                  id="cuotas_cantidad"
+                  type="number"
+                  min="2"
+                  max="24"
+                  value={cuotas.cantidad}
+                  onChange={(e) => setCuotas((c) => ({ ...c, cantidad: parseInt(e.target.value) || 3 }))}
+                  disabled={!cuotasActivo}
+                  placeholder="3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cuotas_banco">Nombre del banco</Label>
+                <Input
+                  id="cuotas_banco"
+                  value={cuotas.banco}
+                  onChange={(e) => setCuotas((c) => ({ ...c, banco: e.target.value }))}
+                  disabled={!cuotasActivo}
+                  placeholder="BBVA"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                id="cuotas_sin_interes"
+                type="checkbox"
+                checked={cuotas.sin_interes}
+                onChange={(e) => setCuotas((c) => ({ ...c, sin_interes: e.target.checked }))}
+                disabled={!cuotasActivo}
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Label htmlFor="cuotas_sin_interes" className="cursor-pointer">Sin interés (S/I)</Label>
+            </div>
+
+            {cuotasActivo && cuotas.banco && (
+              <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-700">
+                Vista previa: <strong>{cuotas.cantidad} cuotas{cuotas.sin_interes ? ' S/I' : ''} de $X con {cuotas.banco}</strong>
+              </div>
+            )}
+
+            {cuotasSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                <p className="text-sm text-green-700">Cuotas guardadas correctamente.</p>
+              </div>
+            )}
+
+            <Button onClick={handleSaveCuotas} disabled={savingCuotas}>
+              {savingCuotas ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</>
+              ) : (
+                <><Save className="w-4 h-4 mr-2" />Guardar Cuotas</>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
