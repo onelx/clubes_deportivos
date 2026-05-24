@@ -1,18 +1,44 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Save, X, Upload } from 'lucide-react';
 import type { Club } from '@/types';
+
+const HERO_KEYS = [
+  'hero_imagen_1_url',
+  'hero_imagen_2_url',
+  'hero_imagen_3_url',
+  'hero_imagen_4_url',
+] as const;
+
+type HeroKey = typeof HERO_KEYS[number];
+
+function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 export default function ConfiguracionPage() {
   const { usuarioClub } = useAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClient(), []);
 
   const [club, setClub] = useState<Club | null>(null);
@@ -20,13 +46,28 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState<Record<HeroKey, boolean>>({
+    hero_imagen_1_url: false,
+    hero_imagen_2_url: false,
+    hero_imagen_3_url: false,
+    hero_imagen_4_url: false,
+  });
 
   const [form, setForm] = useState({
     nombre: '',
     color_primario: '#1d4ed8',
     color_secundario: '#64748b',
-    logo_url: '' as string,
+    hero_imagen_1_url: null as string | null,
+    hero_imagen_2_url: null as string | null,
+    hero_imagen_3_url: null as string | null,
+    hero_imagen_4_url: null as string | null,
+  });
+
+  const heroInputRefs = useRef<Record<HeroKey, HTMLInputElement | null>>({
+    hero_imagen_1_url: null,
+    hero_imagen_2_url: null,
+    hero_imagen_3_url: null,
+    hero_imagen_4_url: null,
   });
 
   const fetchClub = useCallback(async () => {
@@ -44,7 +85,10 @@ export default function ConfiguracionPage() {
         nombre: data.nombre || '',
         color_primario: data.color_primario || '#1d4ed8',
         color_secundario: data.color_secundario || '#64748b',
-        logo_url: data.logo_url || '',
+        hero_imagen_1_url: data.hero_imagen_1_url ?? null,
+        hero_imagen_2_url: data.hero_imagen_2_url ?? null,
+        hero_imagen_3_url: data.hero_imagen_3_url ?? null,
+        hero_imagen_4_url: data.hero_imagen_4_url ?? null,
       });
     }
     setLoading(false);
@@ -53,6 +97,46 @@ export default function ConfiguracionPage() {
   useEffect(() => {
     fetchClub();
   }, [fetchClub]);
+
+  const uploadHeroImage = useCallback(async (key: HeroKey, file: File) => {
+    if (!club) return;
+    setUploadingHero((prev) => ({ ...prev, [key]: true }));
+    try {
+      const blob = await resizeImage(file, 1600);
+      const ext = 'jpg';
+      const path = `hero/${club.id}/${key}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('productos')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('productos').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      await fetch(`/api/dashboard/club/${club.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: publicUrl }),
+      });
+
+      setForm((prev) => ({ ...prev, [key]: publicUrl }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir imagen');
+    } finally {
+      setUploadingHero((prev) => ({ ...prev, [key]: false }));
+    }
+  }, [club, supabase]);
+
+  const removeHeroImage = useCallback(async (key: HeroKey) => {
+    if (!club) return;
+    await fetch(`/api/dashboard/club/${club.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: null }),
+    });
+    setForm((prev) => ({ ...prev, [key]: null }));
+  }, [club]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,6 +339,70 @@ export default function ConfiguracionPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Imágenes Hero */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Imágenes del Hero</CardTitle>
+          <p className="text-sm text-gray-500">
+            4 imágenes que se muestran en el panel derecho de la portada. Recomendado: 800×600 px, ratio 4:3, JPG.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {HERO_KEYS.map((key, i) => {
+              const url = form[key];
+              const isUploading = uploadingHero[key];
+              return (
+                <div key={key} className="space-y-2">
+                  <Label className="text-xs text-gray-500">Imagen {i + 1}</Label>
+                  <div
+                    className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer group"
+                    onClick={() => !isUploading && heroInputRefs.current[key]?.click()}
+                  >
+                    {url ? (
+                      <>
+                        <img
+                          src={url}
+                          alt={`Hero ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeHeroImage(key); }}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : isUploading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-1 text-gray-400 group-hover:text-gray-600 transition-colors">
+                        <Upload size={20} />
+                        <span className="text-xs">Subir</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={(el) => { heroInputRefs.current[key] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadHeroImage(key, file);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

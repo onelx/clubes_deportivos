@@ -9,6 +9,10 @@ export interface Club {
   comision_porcentaje: number;
   activo: boolean;
   created_at: string;
+  hero_imagen_1_url: string | null;
+  hero_imagen_2_url: string | null;
+  hero_imagen_3_url: string | null;
+  hero_imagen_4_url: string | null;
 }
 
 export interface UsuarioClub {
@@ -182,6 +186,10 @@ export interface UpdateClubInput {
   color_primario?: string;
   color_secundario?: string;
   activo?: boolean;
+  hero_imagen_1_url?: string | null;
+  hero_imagen_2_url?: string | null;
+  hero_imagen_3_url?: string | null;
+  hero_imagen_4_url?: string | null;
 }
 
 export interface ApiResponse<T> {

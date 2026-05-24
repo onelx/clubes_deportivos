@@ -45,7 +45,12 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
 
   // Derived
   const categorias = [...new Set(productos.map((p) => p.categoria).filter(Boolean))] as string[];
-  const heroImagen = productos[0]?.imagenes?.[0] ?? club.logo_url ?? null;
+  const heroImagenes = [
+    club.hero_imagen_1_url,
+    club.hero_imagen_2_url,
+    club.hero_imagen_3_url,
+    club.hero_imagen_4_url,
+  ];
 
   // Split club name for the hero heading: last word gets accent
   const nameParts = club.nombre.trim().split(" ");
@@ -90,16 +95,24 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
               </div>
             </div>
 
-            {/* Imagen */}
+            {/* Hero grid 2×2 */}
             <div className="hidden md:block" style={{ position: "relative", background: "#171717", minHeight: 400 }}>
-              {heroImagen ? (
-                <img src={heroImagen} alt={club.nombre} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "rgba(255,255,255,.18)", fontFamily: F_MONO, fontSize: "11px", letterSpacing: ".18em", textTransform: "uppercase" }}>
-                  <div style={{ position: "absolute", inset: 24, border: "1px dashed rgba(255,255,255,.12)" }} />
-                  <span style={{ position: "relative", padding: "6px 12px", background: "#171717" }}>Imagen · {club.nombre}</span>
-                </div>
-              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", height: "100%", position: "absolute", inset: 0, gap: 2 }}>
+                {heroImagenes.map((url, i) =>
+                  url ? (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`${club.nombre} imagen ${i + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <div key={i} style={{ background: "#1a1a1a", display: "grid", placeItems: "center", color: "rgba(255,255,255,.12)", fontFamily: F_MONO, fontSize: "9px", letterSpacing: ".18em", textTransform: "uppercase" }}>
+                      <span>{i + 1}</span>
+                    </div>
+                  )
+                )}
+              </div>
               {/* Dots decorativos */}
               <div style={{ position: "absolute", right: 32, bottom: 24, display: "flex", gap: 8, zIndex: 3 }}>
                 {[true, false, false, false].map((on, i) => (
