@@ -6,6 +6,7 @@ import { TiendaLayout } from "@/components/TiendaLayout";
 import { ProductoCard } from "@/components/ProductoCard";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { PromoPopup } from "@/components/PromoPopup";
+import { PersonalizaCamiseta } from "@/components/PersonalizaCamiseta";
 import type { Club, Producto, VarianteProducto } from "@/types";
 
 interface TiendaPageProps {
@@ -41,6 +42,9 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
   const productos: ProductoConVariantes[] = (rawProductos ?? []) as ProductoConVariantes[];
   const slug = params.slug;
   const accent = club.color_primario || "#FF4D1F";
+
+  // Producto personalizable para la sección de camisetas (primero que tenga personalizable=true)
+  const productoPersonalizable = productos.find((p) => p.personalizable) ?? null;
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -164,6 +168,17 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
           </div>
         </div>
       </section>
+
+      {/* ─── PERSONALIZACIÓN ─────────────────────── */}
+      {productoPersonalizable && (
+        <PersonalizaCamiseta
+          producto={productoPersonalizable}
+          clubSlug={slug}
+          clubNombre={club.nombre}
+          accentColor={club.color_primario || "#0a0a0a"}
+          secondaryColor={club.color_secundario || "#fbbf24"}
+        />
+      )}
 
       {/* ─── PRODUCTOS (bestsellers) ──────────────── */}
       <section style={{ paddingBottom: 24 }}>

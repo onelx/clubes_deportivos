@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Producto, VarianteProducto, CartItem } from '@/types';
+import type { Producto, VarianteProducto, CartItem, PersonalizacionCamiseta } from '@/types';
 
 interface UseCartReturn {
   items: CartItem[];
-  addItem: (producto: Producto, variante: VarianteProducto | null, cantidad: number) => void;
+  addItem: (producto: Producto, variante: VarianteProducto | null, cantidad: number, personalizacion?: PersonalizacionCamiseta) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, cantidad: number) => void;
   clearCart: () => void;
@@ -63,15 +63,21 @@ export function useCart(): UseCartReturn {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const addItem = useCallback((producto: Producto, variante: VarianteProducto | null, cantidad: number) => {
+  const addItem = useCallback((producto: Producto, variante: VarianteProducto | null, cantidad: number, personalizacion?: PersonalizacionCamiseta) => {
     setItems(currentItems => {
-      const itemId = `${producto.id}-${variante?.id ?? 'sin-variante'}`;
-      const existingItemIndex = currentItems.findIndex(
-        item => item.producto.id === producto.id && item.variante?.id === variante?.id
-      );
+      // Items personalizados siempre son únicos (nombre+número distinto = item distinto)
+      const personKey = personalizacion
+        ? `-${personalizacion.nombre}-${personalizacion.numero}`
+        : '';
+      const itemId = `${producto.id}-${variante?.id ?? 'sin-variante'}${personKey}-${Date.now()}`;
+
+      const existingItemIndex = personalizacion
+        ? -1 // personalizados nunca se acumulan, siempre nuevo item
+        : currentItems.findIndex(
+            item => item.producto.id === producto.id && item.variante?.id === variante?.id && !item.personalizacion
+          );
 
       if (existingItemIndex > -1) {
-        // Item ya existe, actualizar cantidad
         const newItems = [...currentItems];
         newItems[existingItemIndex] = {
           ...newItems[existingItemIndex],
@@ -79,13 +85,13 @@ export function useCart(): UseCartReturn {
         };
         return newItems;
       } else {
-        // Nuevo item
         const newItem: CartItem = {
           id: itemId,
           producto,
           variante,
           cantidad,
           precio_unitario: producto.precio_base,
+          ...(personalizacion ? { personalizacion } : {}),
         };
         return [...currentItems, newItem];
       }

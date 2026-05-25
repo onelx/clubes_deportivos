@@ -123,12 +123,18 @@ export interface ItemPedido {
   variante?: VarianteProducto;
 }
 
+export interface PersonalizacionCamiseta {
+  nombre: string;
+  numero: string;
+}
+
 export interface CartItem {
   id: string;
   producto: Producto;
   variante: VarianteProducto | null;
   cantidad: number;
   precio_unitario: number;
+  personalizacion?: PersonalizacionCamiseta;
 }
 
 export interface Cart {
