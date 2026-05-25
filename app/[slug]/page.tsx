@@ -43,8 +43,8 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
   const slug = params.slug;
   const accent = club.color_primario || "#FF4D1F";
 
-  // Producto personalizable para la sección de camisetas (primero que tenga personalizable=true)
-  const productoPersonalizable = productos.find((p) => p.personalizable) ?? null;
+  // Productos personalizables para la sección de camisetas
+  const productosPersonalizables = productos.filter((p) => p.personalizable);
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -170,9 +170,9 @@ export default async function TiendaPage({ params }: TiendaPageProps) {
       </section>
 
       {/* ─── PERSONALIZACIÓN ─────────────────────── */}
-      {productoPersonalizable && (
+      {productosPersonalizables.length > 0 && (
         <PersonalizaCamiseta
-          producto={productoPersonalizable}
+          productos={productosPersonalizables}
           clubSlug={slug}
           clubNombre={club.nombre}
           accentColor={club.color_primario || "#0a0a0a"}
