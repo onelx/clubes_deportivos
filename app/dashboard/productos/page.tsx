@@ -41,6 +41,7 @@ const emptyProductoForm = {
   precio_base: '',
   precio_comparacion: '',
   personalizable: false,
+  imagen_personalizacion: '' as string,
   costo_produccion: '',
   categoria: '',
   imagenes: [] as string[],
@@ -58,6 +59,7 @@ export default function ProductosPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingProducto, setEditingProducto] = useState<ProductoConVariantes | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPersonalizacion, setUploadingPersonalizacion] = useState(false);
 
   const [productoForm, setProductoForm] = useState(emptyProductoForm);
   const [variantes, setVariantes] = useState<VarianteForm[]>([]);
@@ -134,6 +136,7 @@ export default function ProductosPage() {
       precio_base: String(producto.precio_base),
       precio_comparacion: producto.precio_comparacion ? String(producto.precio_comparacion) : '',
       personalizable: producto.personalizable || false,
+      imagen_personalizacion: (producto as any).imagen_personalizacion || '',
       costo_produccion: String(producto.costo_produccion),
       categoria: producto.categoria || '',
       imagenes: producto.imagenes || [],
@@ -162,6 +165,9 @@ export default function ProductosPage() {
       precio_base: parseFloat(productoForm.precio_base) || 0,
       precio_comparacion: productoForm.precio_comparacion ? parseFloat(productoForm.precio_comparacion) : null,
       personalizable: productoForm.personalizable,
+      imagen_personalizacion: productoForm.personalizable && productoForm.imagen_personalizacion
+        ? productoForm.imagen_personalizacion
+        : null,
       costo_produccion: parseFloat(productoForm.costo_produccion) || 0,
       categoria: productoForm.categoria || undefined,
       imagenes: productoForm.imagenes,
@@ -418,16 +424,80 @@ export default function ProductosPage() {
             </div>
 
             {/* Personalizable */}
-            <div className="flex items-center gap-3">
-              <input
-                id="p_personalizable"
-                type="checkbox"
-                checked={productoForm.personalizable}
-                onChange={(e) => setProductoForm((f) => ({ ...f, personalizable: e.target.checked }))}
-                disabled={submitting}
-                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <Label htmlFor="p_personalizable" className="cursor-pointer">Producto personalizable</Label>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <input
+                  id="p_personalizable"
+                  type="checkbox"
+                  checked={productoForm.personalizable}
+                  onChange={(e) => setProductoForm((f) => ({ ...f, personalizable: e.target.checked }))}
+                  disabled={submitting}
+                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Label htmlFor="p_personalizable" className="cursor-pointer">Producto personalizable</Label>
+              </div>
+
+              {/* Upload imagen de personalización — visible solo si personalizable está activo */}
+              {productoForm.personalizable && (
+                <div className="ml-7 p-4 border border-dashed border-indigo-200 rounded-lg bg-indigo-50 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-indigo-800">Imagen para personalización</p>
+                    <p className="text-xs text-indigo-500 mt-0.5">
+                      Subí el dorso de la camiseta. Esta imagen se usa como fondo del preview donde el cliente escribe su nombre y número.
+                    </p>
+                  </div>
+
+                  {/* Preview de la imagen actual */}
+                  {productoForm.imagen_personalizacion && (
+                    <div className="relative group inline-block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={productoForm.imagen_personalizacion}
+                        alt="Dorso camiseta"
+                        className="w-32 h-40 object-cover rounded-md border border-indigo-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setProductoForm((f) => ({ ...f, imagen_personalizacion: '' }))}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <div className="flex items-center gap-2 px-3 py-2 border border-dashed border-indigo-300 rounded-md hover:border-indigo-500 hover:bg-indigo-100 transition-colors text-sm text-indigo-700">
+                      {uploadingPersonalizacion ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+                      ) : (
+                        <><ImageIcon className="w-4 h-4" />{productoForm.imagen_personalizacion ? 'Cambiar imagen' : 'Subir imagen del dorso'}</>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPersonalizacion || submitting}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingPersonalizacion(true);
+                        try {
+                          const url = await resizeAndUpload(file);
+                          setProductoForm((f) => ({ ...f, imagen_personalizacion: url }));
+                        } catch (err) {
+                          console.error('Upload error:', err);
+                          alert('Error al subir la imagen.');
+                        } finally {
+                          setUploadingPersonalizacion(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Categoría */}

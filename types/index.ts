@@ -52,6 +52,7 @@ export interface Producto {
   precio_base: number;
   precio_comparacion: number | null;
   personalizable: boolean;
+  imagen_personalizacion: string | null;
   costo_produccion: number;
   categoria: string | null;
   imagenes: string[];

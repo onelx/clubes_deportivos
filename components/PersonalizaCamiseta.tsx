@@ -43,8 +43,8 @@ export function PersonalizaCamiseta({
   const tallas = [...new Set(variantesActivas.map((v) => v.talla).filter(Boolean))] as string[];
   const hasTallas = tallas.length > 0;
 
-  // Imagen del dorso (segunda imagen) o frente si solo hay una
-  const imagenDorso = producto.imagenes?.[1] ?? producto.imagenes?.[0] ?? null;
+  // Imagen de personalización dedicada, con fallback a segunda imagen del producto
+  const imagenDorso = producto.imagen_personalizacion ?? producto.imagenes?.[1] ?? producto.imagenes?.[0] ?? null;
 
   const bgLight = isLight(accentColor);
   const textColor = bgLight ? "#0a0a0a" : "#fafaf7";
