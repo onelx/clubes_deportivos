@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
+import { Loader2, Save, X, Upload, ToggleLeft, ToggleRight, Eye, Image as ImageIcon } from 'lucide-react';
 import type { Club, PopupConfig, CuotasConfig } from '@/types';
 
 const HERO_KEYS = [
@@ -20,7 +20,7 @@ const HERO_KEYS = [
 
 type HeroKey = typeof HERO_KEYS[number];
 
-function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<Blob> {
+function resizeImage(file: File, maxDimension: number, quality = 0.85, mimeType = 'image/jpeg'): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -31,7 +31,7 @@ function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), mimeType, quality);
     };
     img.onerror = reject;
     img.src = url;
@@ -71,6 +71,8 @@ export default function ConfiguracionPage() {
     url_btn_2: '',
   });
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const [uploadingHero, setUploadingHero] = useState<Record<HeroKey, boolean>>({
     hero_imagen_1_url: false,
     hero_imagen_2_url: false,
@@ -80,6 +82,7 @@ export default function ConfiguracionPage() {
 
   const [form, setForm] = useState({
     nombre: '',
+    logo_url: null as string | null,
     color_primario: '#1d4ed8',
     color_secundario: '#64748b',
     hero_imagen_1_url: null as string | null,
@@ -108,6 +111,7 @@ export default function ConfiguracionPage() {
       setClub(data as Club);
       setForm({
         nombre: data.nombre || '',
+        logo_url: data.logo_url ?? null,
         color_primario: data.color_primario || '#1d4ed8',
         color_secundario: data.color_secundario || '#64748b',
         hero_imagen_1_url: data.hero_imagen_1_url ?? null,
@@ -162,6 +166,48 @@ export default function ConfiguracionPage() {
       setUploadingHero((prev) => ({ ...prev, [key]: false }));
     }
   }, [club, supabase]);
+
+  const uploadLogo = useCallback(async (file: File) => {
+    if (!club) return;
+    setUploadingLogo(true);
+    setError(null);
+    try {
+      const blob = await resizeImage(file, 400, 0.95, 'image/png');
+      const path = `logos/${club.id}-${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('productos')
+        .upload(path, blob, { contentType: 'image/png', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('productos').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      await fetch(`/api/dashboard/club/${club.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo_url: publicUrl }),
+      });
+
+      setForm((prev) => ({ ...prev, logo_url: publicUrl }));
+      setClub((prev) => prev ? { ...prev, logo_url: publicUrl } : prev);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  }, [club, supabase]);
+
+  const removeLogo = useCallback(async () => {
+    if (!club) return;
+    await fetch(`/api/dashboard/club/${club.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logo_url: null }),
+    });
+    setForm((prev) => ({ ...prev, logo_url: null }));
+    setClub((prev) => prev ? { ...prev, logo_url: null } : prev);
+  }, [club]);
 
   const removeHeroImage = useCallback(async (key: HeroKey) => {
     if (!club) return;
@@ -261,6 +307,51 @@ export default function ConfiguracionPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Logo del Club</Label>
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+                    {form.logo_url ? (
+                      <img src={form.logo_url} alt="Logo del club" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm text-gray-600">
+                        {uploadingLogo ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+                        ) : (
+                          <><Upload className="w-4 h-4" />{form.logo_url ? 'Cambiar logo' : 'Subir logo'}</>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingLogo}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadLogo(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {form.logo_url && (
+                      <button
+                        type="button"
+                        onClick={removeLogo}
+                        className="text-xs text-red-500 hover:text-red-700 text-left"
+                      >
+                        Eliminar logo
+                      </button>
+                    )}
+                    <p className="text-xs text-gray-400">PNG con fondo transparente. Máx 400px.</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="slug">Slug (solo lectura)</Label>
                 <Input
