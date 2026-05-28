@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,13 +37,15 @@ function formatPrice(n: number) {
 
 /* ─── Guía de talles data ────────────────────────────── */
 const GUIA_TALLES = [
-  { talla: 'XS', pecho: '82–86', cintura: '64–68', cadera: '88–92' },
-  { talla: 'S',  pecho: '86–90', cintura: '68–72', cadera: '92–96' },
-  { talla: 'M',  pecho: '90–94', cintura: '72–76', cadera: '96–100' },
-  { talla: 'L',  pecho: '94–98', cintura: '76–80', cadera: '100–104' },
-  { talla: 'XL', pecho: '98–102', cintura: '80–84', cadera: '104–108' },
-  { talla: 'XXL',pecho: '102–108', cintura: '84–90', cadera: '108–114' },
+  { talla: 'XXS', busto: '< 78', cintura: '57 – 60', cadera: '82 – 85' },
+  { talla: 'XS',  busto: '79 – 83', cintura: '61 – 66', cadera: '86 – 91' },
+  { talla: 'S',   busto: '84 – 88', cintura: '67 – 72', cadera: '92 – 97' },
+  { talla: 'M',   busto: '89 – 93', cintura: '73 – 78', cadera: '98 – 103' },
+  { talla: 'L',   busto: '94 – 98', cintura: '79 – 85', cadera: '104 – 110' },
+  { talla: 'XL',  busto: '99 – 103', cintura: '86 – 94', cadera: '111 – 117' },
 ];
+
+const COSTO_ENVIO = 500;
 
 /* ─── Sub-components ─────────────────────────────────── */
 
@@ -85,16 +87,17 @@ function GuiaTallesModal({ onClose }: { onClose: () => void }) {
 
           {/* Tabla */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 14 }}>
               <thead>
-                <tr style={{ borderBottom: `2px solid ${LINE}` }}>
-                  {['Talla', 'Pecho', 'Cintura', 'Cadera'].map(h => (
+                <tr>
+                  {['Etiqueta', 'Busto', 'Cintura', 'Cadera'].map((h, hi) => (
                     <th
                       key={h}
                       style={{
-                        fontFamily: F_DISPLAY, fontWeight: 600, fontSize: 11,
-                        letterSpacing: '0.1em', textTransform: 'uppercase',
-                        color: '#999', padding: '8px 12px', textAlign: 'left',
+                        fontFamily: F_DISPLAY, fontWeight: 700, fontSize: 13,
+                        color: INK, background: '#FBBF24', padding: '16px 12px', textAlign: 'center',
+                        borderTopLeftRadius: hi === 0 ? 10 : 0,
+                        borderTopRightRadius: hi === 3 ? 10 : 0,
                       }}
                     >
                       {h}
@@ -103,17 +106,14 @@ function GuiaTallesModal({ onClose }: { onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {GUIA_TALLES.map((row, i) => (
-                  <tr
-                    key={row.talla}
-                    style={{ background: i % 2 === 0 ? '#fff' : 'transparent', borderBottom: `1px solid ${LINE}` }}
-                  >
-                    <td style={{ padding: '10px 12px', fontFamily: F_MONO, fontWeight: 700, fontSize: 13, color: INK }}>
+                {GUIA_TALLES.map((row) => (
+                  <tr key={row.talla}>
+                    <td style={{ padding: '14px 12px', fontFamily: F_DISPLAY, fontWeight: 700, fontSize: 15, color: INK, textAlign: 'center', borderBottom: `1px solid ${LINE}` }}>
                       {row.talla}
                     </td>
-                    <td style={{ padding: '10px 12px', color: '#555' }}>{row.pecho}</td>
-                    <td style={{ padding: '10px 12px', color: '#555' }}>{row.cintura}</td>
-                    <td style={{ padding: '10px 12px', color: '#555' }}>{row.cadera}</td>
+                    <td style={{ padding: '14px 12px', color: '#555', textAlign: 'center', borderBottom: `1px solid ${LINE}` }}>{row.busto} cm</td>
+                    <td style={{ padding: '14px 12px', color: '#555', textAlign: 'center', borderBottom: `1px solid ${LINE}` }}>{row.cintura} cm</td>
+                    <td style={{ padding: '14px 12px', color: '#555', textAlign: 'center', borderBottom: `1px solid ${LINE}` }}>{row.cadera} cm</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,6 +132,70 @@ function GuiaTallesModal({ onClose }: { onClose: () => void }) {
             </ul>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EnvioModal({ onClose }: { onClose: () => void }) {
+  const [cp, setCp] = useState('');
+  const [resultado, setResultado] = useState<string | null>(null);
+
+  const calcular = () => {
+    const cpLimpio = cp.trim();
+    if (!cpLimpio) return;
+    setResultado(`Envío a CP ${cpLimpio}: ${formatPrice(COSTO_ENVIO)} · 5–10 días hábiles`);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(10,10,10,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: PAPER, borderRadius: 8, maxWidth: 460, width: '100%', position: 'relative', padding: 28 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h3 style={{ fontFamily: F_DISPLAY, fontWeight: 700, fontSize: 20, color: INK }}>
+            Calculá el costo de envío
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 4 }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={cp}
+            onChange={e => { setCp(e.target.value.replace(/\D/g, '').slice(0, 8)); setResultado(null); }}
+            placeholder="Tu código postal"
+            style={{ flex: 1, padding: '13px 16px', border: `1px solid ${LINE}`, borderRadius: 6, fontFamily: F_DISPLAY, fontSize: 15, outline: 'none', boxSizing: 'border-box' }}
+          />
+          <button
+            onClick={calcular}
+            style={{ padding: '0 20px', background: 'var(--accent, #0a0a0a)', color: PAPER, border: 'none', borderRadius: 6, fontFamily: F_DISPLAY, fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Calcular envío
+          </button>
+        </div>
+
+        {resultado && (
+          <div style={{ marginTop: 16, padding: '14px 16px', background: '#f0ede5', borderRadius: 6, fontFamily: F_DISPLAY, fontSize: 14, color: INK }}>
+            {resultado}
+          </div>
+        )}
+
+        <p style={{ marginTop: 14, fontFamily: F_MONO, fontSize: 11, letterSpacing: '0.04em', color: '#888', lineHeight: 1.5 }}>
+          Envío de costo fijo a todo el país. El plazo puede variar según la localidad.
+        </p>
       </div>
     </div>
   );
@@ -162,12 +226,35 @@ export function ProductoDetalleInteractivo({
   const hasColores = colores.length > 0;
   const hasVariantes = variantes.length > 0;
 
-  const [selectedImage, setSelectedImage] = useState(0);
   const [selectedTalla, setSelectedTalla]   = useState<string | null>(tallas[0] ?? null);
   const [selectedColor, setSelectedColor]   = useState<string | null>(colores[0] ?? null);
   const [cantidad, setCantidad]             = useState(1);
   const [added, setAdded]                   = useState(false);
   const [guiaOpen, setGuiaOpen]             = useState(false);
+  const [envioOpen, setEnvioOpen]           = useState(false);
+  const [favorito, setFavorito]             = useState(false);
+
+  useEffect(() => {
+    try {
+      setFavorito(localStorage.getItem(`fav_${clubSlug}_${producto.id}`) === '1');
+    } catch {
+      // localStorage no disponible (SSR)
+    }
+  }, [clubSlug, producto.id]);
+
+  const toggleFavorito = useCallback(() => {
+    try {
+      const key = `fav_${clubSlug}_${producto.id}`;
+      setFavorito((prev) => {
+        const next = !prev;
+        if (next) localStorage.setItem(key, '1');
+        else localStorage.removeItem(key);
+        return next;
+      });
+    } catch {
+      // ignore
+    }
+  }, [clubSlug, producto.id]);
 
   // Encuentra la variante que coincide con talla+color seleccionados
   const selectedVariante: VarianteProducto | null = hasVariantes
@@ -219,6 +306,7 @@ export function ProductoDetalleInteractivo({
   return (
     <>
       {guiaOpen && <GuiaTallesModal onClose={() => setGuiaOpen(false)} />}
+      {envioOpen && <EnvioModal onClose={() => setEnvioOpen(false)} />}
 
       <div style={{ background: PAPER, minHeight: '100vh' }}>
 
@@ -267,91 +355,68 @@ export function ProductoDetalleInteractivo({
               alignItems: 'start',
             }}
           >
-            {/* ── Galería ───────────────────────────── */}
-            <div>
-              {/* Imagen principal */}
-              <div
-                style={{
-                  aspectRatio: '4/5',
-                  background: '#eeece5',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  marginBottom: 12,
-                }}
-              >
-                {imagenes.length > 0 ? (
-                  <Image
-                    src={imagenes[selectedImage]}
-                    alt={producto.nombre}
-                    fill
-                    priority
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#bbb' }}>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="9" cy="9" r="2" />
-                      <path d="m21 15-5-5L5 21" />
-                    </svg>
-                    <span style={{ fontFamily: F_MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Sin imagen</span>
+            {/* ── Galería: frente + dorso ───────────── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[0, 1].map((slot) => {
+                const img = imagenes[slot];
+                const esDorso = slot === 1;
+                return (
+                  <div
+                    key={slot}
+                    style={{
+                      aspectRatio: '4/5',
+                      background: '#eeece5',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {img ? (
+                      <Image
+                        src={img}
+                        alt={`${producto.nombre} — ${esDorso ? 'dorso' : 'frente'}`}
+                        fill
+                        priority={!esDorso}
+                        style={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#bbb' }}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-5-5L5 21" />
+                        </svg>
+                        <span style={{ fontFamily: F_MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                          {esDorso ? 'Dorso — sin imagen' : 'Sin imagen'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Corazón de favorito (sobre la primera imagen) */}
+                    {slot === 0 && (
+                      <button
+                        onClick={toggleFavorito}
+                        aria-label={favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                        style={{
+                          position: 'absolute', top: 12, right: 12, zIndex: 3,
+                          background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: '50%',
+                          width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', backdropFilter: 'blur(4px)',
+                        }}
+                      >
+                        <svg
+                          width="20" height="20" viewBox="0 0 24 24"
+                          fill={favorito ? '#e11d48' : 'none'}
+                          stroke={favorito ? '#e11d48' : '#0a0a0a'}
+                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                )}
-
-                {/* Flechas navegación */}
-                {imagenes.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setSelectedImage(i => Math.max(0, i - 1))}
-                      disabled={selectedImage === 0}
-                      style={{
-                        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                        background: 'rgba(250,250,247,0.9)', border: 'none', borderRadius: '50%',
-                        width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: selectedImage === 0 ? 'default' : 'pointer',
-                        opacity: selectedImage === 0 ? 0.3 : 1,
-                      }}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button
-                      onClick={() => setSelectedImage(i => Math.min(imagenes.length - 1, i + 1))}
-                      disabled={selectedImage === imagenes.length - 1}
-                      style={{
-                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                        background: 'rgba(250,250,247,0.9)', border: 'none', borderRadius: '50%',
-                        width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: selectedImage === imagenes.length - 1 ? 'default' : 'pointer',
-                        opacity: selectedImage === imagenes.length - 1 ? 0.3 : 1,
-                      }}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnails */}
-              {imagenes.length > 1 && (
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                  {imagenes.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      style={{
-                        width: 72, height: 72, borderRadius: 6, overflow: 'hidden',
-                        flexShrink: 0, position: 'relative', border: 'none',
-                        outline: selectedImage === i ? `2px solid var(--accent, ${INK})` : `2px solid transparent`,
-                        outlineOffset: 2,
-                        cursor: 'pointer', background: '#eeece5',
-                      }}
-                    >
-                      <Image src={img} alt="" fill style={{ objectFit: 'cover' }} />
-                    </button>
-                  ))}
-                </div>
-              )}
+                );
+              })}
             </div>
 
             {/* ── Info del producto ─────────────────── */}
@@ -587,6 +652,19 @@ export function ProductoDetalleInteractivo({
                     Seleccioná talla y color para continuar
                   </p>
                 )}
+
+                {/* Calcular envío */}
+                <button
+                  type="button"
+                  onClick={() => setEnvioOpen(true)}
+                  style={{
+                    alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+                    fontFamily: F_DISPLAY, fontSize: 13, color: INK, cursor: 'pointer',
+                    textDecoration: 'underline', textUnderlineOffset: 3,
+                  }}
+                >
+                  Calculá el costo de envío
+                </button>
 
                 {/* Detalles adicionales */}
                 <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
