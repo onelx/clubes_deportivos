@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { TiendaLayout } from '@/components/TiendaLayout';
 import { ProductoDetalleInteractivo } from '@/components/ProductoDetalleInteractivo';
 import type { Club, Producto, VarianteProducto } from '@/types';
@@ -21,20 +21,24 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
 
   if (clubError || !club) notFound();
 
-  // Producto con variantes
   const { data: productoData, error: prodError } = await supabase
     .from('productos')
-    .select(`
-      *,
-      variantes:variantes_producto(*)
-    `)
+    .select('*')
     .eq('id', params.id)
     .eq('activo', true)
     .single();
 
   if (prodError || !productoData) notFound();
 
-  const producto = productoData as Producto;
+  // Variantes con admin client para incluir las inactivas: en la ficha
+  // un talle inactivo se muestra como "agotado" (tachado), no oculto.
+  const admin = createAdminClient();
+  const { data: variantesAll } = await admin
+    .from('variantes_producto')
+    .select('*')
+    .eq('producto_id', params.id);
+
+  const producto = { ...productoData, variantes: variantesAll ?? [] } as Producto;
 
   // Productos relacionados: misma categoría primero y, si no alcanzan,
   // se completa con otros productos del club (el catálogo suele ser chico

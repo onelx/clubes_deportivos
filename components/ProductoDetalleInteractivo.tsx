@@ -35,6 +35,18 @@ function formatPrice(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
 }
 
+/* ─── Orden canónico de talles ───────────────────────── */
+const TALLA_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL'];
+function tallaPos(t: string): number {
+  const i = TALLA_ORDER.indexOf(t.toUpperCase());
+  if (i !== -1) return i;
+  const n = parseInt(t, 10);
+  return Number.isNaN(n) ? 999 : 100 + n;
+}
+function tallaRank(a: string, b: string): number {
+  return tallaPos(a) - tallaPos(b);
+}
+
 /* ─── Guía de talles data ────────────────────────────── */
 const GUIA_TALLES = [
   { talla: 'XXS', busto: '< 78', cintura: '57 – 60', cadera: '82 – 85' },
@@ -220,7 +232,7 @@ export function ProductoDetalleInteractivo({
   const { addItem } = useCart();
 
   const variantes: VarianteProducto[] = producto.variantes ?? [];
-  const tallas  = [...new Set(variantes.map(v => v.talla).filter(Boolean))] as string[];
+  const tallas  = ([...new Set(variantes.map(v => v.talla).filter(Boolean))] as string[]).sort(tallaRank);
   const colores  = [...new Set(variantes.map(v => v.color).filter(Boolean))] as string[];
   const hasTallas = tallas.length > 0;
   const hasColores = colores.length > 0;
@@ -232,6 +244,7 @@ export function ProductoDetalleInteractivo({
   const [added, setAdded]                   = useState(false);
   const [guiaOpen, setGuiaOpen]             = useState(false);
   const [envioOpen, setEnvioOpen]           = useState(false);
+  const [lightbox, setLightbox]             = useState<string | null>(null);
   const [favorito, setFavorito]             = useState(false);
 
   useEffect(() => {
@@ -265,10 +278,10 @@ export function ProductoDetalleInteractivo({
       }) ?? variantes[0]
     : null;
 
-  // Tallas disponibles para el color seleccionado
+  // Tallas disponibles: por color+activo si hay colores, o por activo si no
   const tallasDisponibles = hasColores && selectedColor
     ? new Set(variantes.filter(v => v.color === selectedColor && v.activo).map(v => v.talla))
-    : new Set(tallas);
+    : new Set(variantes.filter(v => v.activo).map(v => v.talla));
 
   // Colores disponibles para la talla seleccionada
   const coloresDisponibles = hasTallas && selectedTalla
@@ -307,6 +320,37 @@ export function ProductoDetalleInteractivo({
     <>
       {guiaOpen && <GuiaTallesModal onClose={() => setGuiaOpen(false)} />}
       {envioOpen && <EnvioModal onClose={() => setEnvioOpen(false)} />}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(10,10,10,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24, cursor: 'zoom-out',
+          }}
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            aria-label="Cerrar"
+            style={{
+              position: 'absolute', top: 20, right: 20,
+              background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#fff',
+            }}
+          >
+            <X size={22} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt={producto.nombre}
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '92vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: 8 }}
+          />
+        </div>
+      )}
 
       <div style={{ background: PAPER, minHeight: '100vh' }}>
 
@@ -355,20 +399,22 @@ export function ProductoDetalleInteractivo({
               alignItems: 'start',
             }}
           >
-            {/* ── Galería: frente + dorso ───────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* ── Galería: frente + dorso (lado a lado, click para ampliar) ─── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[0, 1].map((slot) => {
                 const img = imagenes[slot];
                 const esDorso = slot === 1;
                 return (
                   <div
                     key={slot}
+                    onClick={() => img && setLightbox(img)}
                     style={{
                       aspectRatio: '4/5',
                       background: '#eeece5',
                       borderRadius: 8,
                       overflow: 'hidden',
                       position: 'relative',
+                      cursor: img ? 'zoom-in' : 'default',
                     }}
                   >
                     {img ? (
@@ -377,6 +423,7 @@ export function ProductoDetalleInteractivo({
                         alt={`${producto.nombre} — ${esDorso ? 'dorso' : 'frente'}`}
                         fill
                         priority={!esDorso}
+                        sizes="(max-width: 768px) 50vw, 25vw"
                         style={{ objectFit: 'cover' }}
                       />
                     ) : (
@@ -395,7 +442,7 @@ export function ProductoDetalleInteractivo({
                     {/* Corazón de favorito (sobre la primera imagen) */}
                     {slot === 0 && (
                       <button
-                        onClick={toggleFavorito}
+                        onClick={(e) => { e.stopPropagation(); toggleFavorito(); }}
                         aria-label={favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                         style={{
                           position: 'absolute', top: 12, right: 12, zIndex: 3,
