@@ -260,6 +260,12 @@ export function ProductoDetalleInteractivo({
   const canAdd = !hasVariantes || !!selectedVariante;
   const imagenes = producto.imagenes ?? [];
 
+  // Si todos los relacionados comparten la categoría del producto, la usamos
+  // como título; si están mezclados (fallback), un título genérico.
+  const relacionadosMismaCategoria =
+    !!producto.categoria && relacionados.every((r) => r.categoria === producto.categoria);
+  const tituloRelacionados = relacionadosMismaCategoria ? producto.categoria : 'Más productos del club';
+
   return (
     <>
       {guiaOpen && <GuiaTallesModal onClose={() => setGuiaOpen(false)} />}
@@ -670,7 +676,7 @@ export function ProductoDetalleInteractivo({
                       letterSpacing: '-0.025em', color: INK,
                     }}
                   >
-                    {producto.categoria ?? 'Más productos'}
+                    {tituloRelacionados}
                   </h2>
                 </div>
                 <Link

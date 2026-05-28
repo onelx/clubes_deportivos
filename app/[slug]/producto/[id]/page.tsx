@@ -36,25 +36,49 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
 
   const producto = productoData as Producto;
 
-  // Productos relacionados (misma categoría, excluyendo el actual)
-  const { data: relacionados } = await supabase
-    .from('productos')
-    .select(`
-      id, nombre, precio_base, imagenes, categoria,
-      variantes:variantes_producto(id, talla, color, activo)
-    `)
-    .eq('club_id', club.id)
-    .eq('activo', true)
-    .eq('categoria', producto.categoria ?? '')
-    .neq('id', params.id)
-    .limit(4);
+  // Productos relacionados: misma categoría primero y, si no alcanzan,
+  // se completa con otros productos del club (el catálogo suele ser chico
+  // o estar sin categorizar, así la sección siempre tiene contenido).
+  const LIMIT_RELACIONADOS = 4;
+  const SELECT_RELACIONADOS = `
+    id, nombre, precio_base, imagenes, categoria,
+    variantes:variantes_producto(id, talla, color, activo)
+  `;
+
+  let relacionados: Producto[] = [];
+
+  if (producto.categoria) {
+    const { data } = await supabase
+      .from('productos')
+      .select(SELECT_RELACIONADOS)
+      .eq('club_id', club.id)
+      .eq('activo', true)
+      .eq('categoria', producto.categoria)
+      .neq('id', params.id)
+      .limit(LIMIT_RELACIONADOS);
+    relacionados = (data ?? []) as Producto[];
+  }
+
+  if (relacionados.length < LIMIT_RELACIONADOS) {
+    const { data } = await supabase
+      .from('productos')
+      .select(SELECT_RELACIONADOS)
+      .eq('club_id', club.id)
+      .eq('activo', true)
+      .neq('id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(LIMIT_RELACIONADOS + relacionados.length);
+    const yaIncluidos = new Set(relacionados.map((r) => r.id));
+    const extra = ((data ?? []) as Producto[]).filter((p) => !yaIncluidos.has(p.id));
+    relacionados = [...relacionados, ...extra].slice(0, LIMIT_RELACIONADOS);
+  }
 
   return (
     <TiendaLayout club={club as Club}>
       <ProductoDetalleInteractivo
         club={club as Club}
         producto={producto}
-        relacionados={(relacionados ?? []) as Producto[]}
+        relacionados={relacionados}
         clubSlug={params.slug}
       />
     </TiendaLayout>
