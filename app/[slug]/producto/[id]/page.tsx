@@ -40,10 +40,7 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
   // se completa con otros productos del club (el catálogo suele ser chico
   // o estar sin categorizar, así la sección siempre tiene contenido).
   const LIMIT_RELACIONADOS = 4;
-  const SELECT_RELACIONADOS = `
-    id, nombre, precio_base, imagenes, categoria,
-    variantes:variantes_producto(id, talla, color, activo)
-  `;
+  const SELECT_RELACIONADOS = `*, variantes:variantes_producto(*)`;
 
   let relacionados: Producto[] = [];
 

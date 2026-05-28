@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Check, X, Minus, Plus, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
+import { ProductoCard } from '@/components/ProductoCard';
 import type { Club, Producto, VarianteProducto } from '@/types';
 
 /* ─── Design tokens ──────────────────────────────────── */
@@ -136,51 +137,6 @@ function GuiaTallesModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function RelacionadoCard({ producto, clubSlug }: { producto: Producto; clubSlug: string }) {
-  const hasImg = (producto.imagenes?.length ?? 0) > 0;
-
-  return (
-    <Link
-      href={`/${clubSlug}/producto/${producto.id}`}
-      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-    >
-      <div
-        style={{
-          aspectRatio: '4/5',
-          background: '#eeece5',
-          borderRadius: 6,
-          overflow: 'hidden',
-          position: 'relative',
-          marginBottom: 12,
-        }}
-      >
-        {hasImg ? (
-          <Image
-            src={producto.imagenes![0]}
-            alt={producto.nombre}
-            fill
-            style={{ objectFit: 'cover' }}
-          />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-5-5L5 21" />
-            </svg>
-          </div>
-        )}
-      </div>
-      <p style={{ fontFamily: F_DISPLAY, fontWeight: 600, fontSize: 14, color: INK, marginBottom: 2, lineHeight: 1.3 }}>
-        {producto.nombre}
-      </p>
-      <p style={{ fontFamily: F_MONO, fontSize: 12, color: '#777' }}>
-        {formatPrice(producto.precio_base)}
-      </p>
-    </Link>
-  );
-}
-
 /* ─── Main component ─────────────────────────────────── */
 
 interface ProductoDetalleInteractivoProps {
@@ -259,12 +215,6 @@ export function ProductoDetalleInteractivo({
 
   const canAdd = !hasVariantes || !!selectedVariante;
   const imagenes = producto.imagenes ?? [];
-
-  // Si todos los relacionados comparten la categoría del producto, la usamos
-  // como título; si están mezclados (fallback), un título genérico.
-  const relacionadosMismaCategoria =
-    !!producto.categoria && relacionados.every((r) => r.categoria === producto.categoria);
-  const tituloRelacionados = relacionadosMismaCategoria ? producto.categoria : 'Más productos del club';
 
   return (
     <>
@@ -661,14 +611,6 @@ export function ProductoDetalleInteractivo({
               {/* Encabezado de sección */}
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
                 <div>
-                  <p
-                    style={{
-                      fontFamily: F_MONO, fontSize: 11, letterSpacing: '0.16em',
-                      textTransform: 'uppercase', color: '#aaa', marginBottom: 6,
-                    }}
-                  >
-                    También te puede gustar
-                  </p>
                   <h2
                     style={{
                       fontFamily: F_DISPLAY, fontWeight: 700,
@@ -676,7 +618,7 @@ export function ProductoDetalleInteractivo({
                       letterSpacing: '-0.025em', color: INK,
                     }}
                   >
-                    {tituloRelacionados}
+                    También te puede interesar…
                   </h2>
                 </div>
                 <Link
@@ -696,12 +638,19 @@ export function ProductoDetalleInteractivo({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                   gap: 24,
                 }}
               >
-                {relacionados.map(rel => (
-                  <RelacionadoCard key={rel.id} producto={rel} clubSlug={clubSlug} />
+                {relacionados.map((rel, i) => (
+                  <ProductoCard
+                    key={rel.id}
+                    producto={rel}
+                    clubSlug={clubSlug}
+                    index={i}
+                    accentColor={club.color_primario || undefined}
+                    cuotasConfig={club.cuotas_config ?? null}
+                  />
                 ))}
               </div>
             </div>
