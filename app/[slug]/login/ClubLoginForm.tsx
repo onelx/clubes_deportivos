@@ -33,7 +33,7 @@ export function ClubLoginForm({ clubId, clubNombre, clubSlug, clubLogoUrl, color
     try {
       await signIn(email, password);
       const isSuperAdmin = email === process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL;
-      router.push(isSuperAdmin ? `/dashboard?as=${clubId}` : '/dashboard');
+      router.push(isSuperAdmin ? `/${clubSlug}/dashboard` : '/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Credenciales incorrectas. Verificá tu email y contraseña.');
     } finally {
