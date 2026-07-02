@@ -11,7 +11,7 @@ export default async function ClubLoginPage({ params }: Props) {
 
   const { data: club } = await supabase
     .from('clubs')
-    .select('nombre, slug, logo_url, color_primario')
+    .select('id, nombre, slug, logo_url, color_primario')
     .eq('slug', params.slug)
     .eq('activo', true)
     .single();
@@ -20,6 +20,7 @@ export default async function ClubLoginPage({ params }: Props) {
 
   return (
     <ClubLoginForm
+      clubId={club.id}
       clubNombre={club.nombre}
       clubSlug={club.slug}
       clubLogoUrl={club.logo_url ?? null}

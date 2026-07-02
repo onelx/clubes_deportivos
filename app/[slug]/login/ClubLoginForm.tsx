@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface Props {
+  clubId: string;
   clubNombre: string;
   clubSlug: string;
   clubLogoUrl: string | null;
   colorPrimario: string;
 }
 
-export function ClubLoginForm({ clubNombre, clubSlug, clubLogoUrl, colorPrimario }: Props) {
+export function ClubLoginForm({ clubId, clubNombre, clubSlug, clubLogoUrl, colorPrimario }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +32,8 @@ export function ClubLoginForm({ clubNombre, clubSlug, clubLogoUrl, colorPrimario
     setLoading(true);
     try {
       await signIn(email, password);
-      router.push('/dashboard');
+      const isSuperAdmin = email === process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL;
+      router.push(isSuperAdmin ? `/dashboard?as=${clubId}` : '/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Credenciales incorrectas. Verificá tu email y contraseña.');
     } finally {
