@@ -17,5 +17,10 @@ export default async function ClubDashboardRedirect({ params }: Props) {
 
   if (!club) notFound();
 
-  redirect(`/dashboard?as=${club.id}`);
+  // Si hay sesión activa y el usuario es superadmin, impersonamos el club.
+  // Para admins propios del club, /dashboard carga su club automáticamente.
+  const { data: { user } } = await supabase.auth.getUser();
+  const isSuperAdmin = user?.email === process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL;
+
+  redirect(isSuperAdmin ? `/dashboard?as=${club.id}` : '/dashboard');
 }
